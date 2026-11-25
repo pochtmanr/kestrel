@@ -1,0 +1,42 @@
+{
+  "fill" : {
+    "linear-gradient" : [
+      "srgb:0.14118,0.25882,0.41961,1.00000",
+      "srgb:0.04314,0.07843,0.14118,1.00000"
+    ]
+  },
+  "groups" : [
+    {
+      "layers" : [
+        {
+          "fill" : {
+            "solid" : "srgb:0.73333,0.84706,1.00000,1.00000"
+          },
+          "image-name" : "K.svg",
+          "name" : "K",
+          "position" : {
+            "scale" : 1.1,
+            "translation-in-points" : [
+              8,
+              0
+            ]
+          }
+        }
+      ],
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 0.5
+      },
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.3
+      }
+    }
+  ],
+  "supported-platforms" : {
+    "circles" : [
+      "watchOS"
+    ],
+    "squares" : "shared"
+  }
+}

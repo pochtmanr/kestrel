@@ -26,6 +26,11 @@
 - [x] Balance and flow charts with 7D / 1M / 3M / 1Y / All and drag-to-scrub; insight tiles (in, out, net, fees, count, largest) and top counterparties.
 - [x] Search (address, amount, tx id) and filters (direction, amount range, dates, counterparty); network fee per sent transfer.
 
+## Done (2026-11-25): Currencies screen
+- [x] A Currencies screen, pushed from the home Currencies card (the old search tab is gone; the tab bar is Wallet + Activity): portfolio value with 24h change, allocation bar, coin list with 7-day sparklines, sort and in-tab search.
+- [x] Coin screen: price chart 1D–1Y with scrubbing, your position, market stats (cap, volume, 24h range, ATH), recent USDT transfers or TRX fuel and fees paid.
+- [x] Home Currencies rows open the coin screens. `TokenKind` is now the coin registry: a new coin is a new case.
+
 ## Next
 1. **Support:** stand up the Simnetiq Chatwoot instance and fill in `SupportConfig.chatwootBaseURL` and `chatwootWebsiteToken`.
 2. **Support and privacy pages:** decide where they live (a simple static page on the app's own domain), then set `SupportConfig.terms` and `privacy`.
@@ -38,7 +43,7 @@
    - TRX staking for energy
    - multiple wallets
    - a watch-only address
-   - more TRC-20 tokens
+   - more TRC-20 tokens (the Currencies tab is ready: add a `TokenKind` case and a balance source)
    - push notifications for incoming transfers (needs a server or a third-party service)
 4. **Redesign** (prompt: `docs/roadmap/NEXT_SESSION_DESIGN.md`): a new information architecture (don't copy the current tab and home layout), then the final icon and brand assets. Most of it is token and component work now.
 5. **Security backlog:** see `docs/SECURITY.md` §7. Verify the txID before signing, persist the PIN throttle, and fix the privacy manifest reason code before submission.

@@ -4,7 +4,30 @@ import WidgetKit
 
 /// Screens the home (and the coin screens) push.
 enum HomeRoute: Hashable {
-    case receive, fees, settings
+    case receive, fees, settings, currencies
+    case coin(TokenKind)
+    /// Receive opened for a specific coin (TRX from "Add TRX"); `.receive` is USDT.
+    case receiveToken(TokenKind)
+}
+
+/// Where a `HomeRoute` leads. Pushed screens are full pages: the tab bar
+/// steps aside so their own bottom buttons (Copy, Share…) sit where thumbs are.
+struct RouteDestination: View {
+    let route: HomeRoute
+
+    var body: some View {
+        Group {
+            switch route {
+            case .receive: DepositView()
+            case .fees: NetworkFeeInfoView()
+            case .settings: SettingsView()
+            case .currencies: CurrenciesView()
+            case .coin(let token): CoinDetailView(token: token)
+            case .receiveToken(let token): DepositView(token: token)
+            }
+        }
+        .toolbar(.hidden, for: .tabBar)
+    }
 }
 
 /// The Wallet tab: who you are, what you have, and big cards that open
@@ -20,6 +43,10 @@ struct WalletView: View {
     @State private var showSupport = false
     @State private var detail: TokenTransfer?
     @State private var path: [HomeRoute] = []
+    #if DEBUG
+    /// `onAppear` fires again on every pop back to home; the launch route must apply once.
+    @State private var debugRouteApplied = false
+    #endif
     static let sendZoomID = "send"
 
     var body: some View {
@@ -41,7 +68,7 @@ struct WalletView: View {
             .background(alignment: .top) { accentGlow }
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(for: HomeRoute.self) { route in
-                destination(route).zoomDestination(id: route, in: zoom)
+                RouteDestination(route: route).zoomDestination(id: route, in: zoom)
             }
             .refreshable { await app.refresh() }
             .onChange(of: hideBalance) { WidgetCenter.shared.reloadTimelines(ofKind: SharedWallet.widgetKind) }
@@ -69,15 +96,6 @@ struct WalletView: View {
         }
     }
 
-    @ViewBuilder
-    private func destination(_ route: HomeRoute) -> some View {
-        switch route {
-        case .receive: DepositView()
-        case .fees: NetworkFeeInfoView()
-        case .settings: SettingsView()
-        }
-    }
-
     /// A faint light falling on the slate from above.
     private var accentGlow: some View {
         RadialGradient(colors: [Theme.Palette.accent.opacity(0.22), Theme.Palette.accent.opacity(0.05), .clear],
@@ -89,34 +107,58 @@ struct WalletView: View {
 
     // MARK: Header and balance
 
+    /// One control for "who am I" and "where are my settings": the wallet's
+    /// disc in a glass pill, opening a menu. The address text left the header
+    /// so the balance owns the top of the screen; the menu keeps it one tap away.
     private var header: some View {
         HStack(spacing: 12) {
-            WalletBadge(address: app.address ?? "")
-            Button(action: copyAddress) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Main wallet")
-                        .font(.headline)
-                        .foregroundStyle(Theme.Palette.textPrimary)
-                        .lineLimit(1)
-                    HStack(spacing: 4) {
-                        Text(copied ? "Address copied" : (app.address ?? "").shortAddress)
-                            .font(.caption.monospaced())
-                            .lineLimit(1)
-                        Image(systemName: copied ? "checkmark" : "doc.on.doc").font(.caption2)
-                    }
-                    .foregroundStyle(copied ? Theme.Palette.positive : Theme.Palette.textSecondary)
-                }
-                .contentShape(.rect)
-            }
-            .buttonStyle(.plain)
-            .layoutPriority(1)
-            .accessibilityHint("Copies your wallet address")
+            walletMenu
             Spacer(minLength: 8)
             SupportButton { showSupport = true }
-            GlassGlyph(symbol: "gearshape.fill", label: "Settings") { path.append(.settings) }
         }
         .padding(.top, 8)
         .sheet(isPresented: $showSupport) { SupportChatSheet() }
+    }
+
+    private var walletMenu: some View {
+        let address = app.address ?? ""
+        return Menu {
+            Section("Main wallet") {
+                Button(action: copyAddress) {
+                    Text("Copy address")
+                    Text(verbatim: address.shortAddress)
+                    Image(systemName: "doc.on.doc")
+                }
+                .disabled(app.address == nil)
+            }
+            Button {
+                Haptics.tap()
+                path.append(.settings)
+            } label: {
+                Label("Settings", systemImage: "gearshape")
+            }
+        } label: {
+            HStack(spacing: 6) {
+                WalletBadge(address: address, size: 36)
+                // Swaps to a tick for a moment after a copy: the menu is gone
+                // by then, so the pill is where the confirmation can live.
+                Image(systemName: copied ? "checkmark" : "chevron.down")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(copied ? Theme.Palette.positive : Theme.Palette.textSecondary)
+                    .contentTransition(.symbolEffect(.replace))
+                    .frame(minWidth: 14)
+            }
+            .padding(.leading, 4)
+            .padding(.trailing, 10)
+            .frame(minHeight: 44)
+            .chromeGlass(in: .capsule)
+            .contentShape(.capsule)
+        }
+        .menuStyle(.button)
+        .buttonStyle(.plain)
+        .accessibilityLabel("Main wallet")
+        .accessibilityValue(copied ? Text("Address copied") : Text(verbatim: address.shortAddress))
+        .accessibilityHint("Copy your address or open Settings")
     }
 
     private var balance: some View {
@@ -265,43 +307,35 @@ struct WalletView: View {
 
     // MARK: Currencies
 
-    private enum FuelLevel {
-        case good, low, empty
-
-        var color: Color {
-            switch self {
-            case .good: Theme.Palette.textTertiary
-            case .low: Theme.Palette.warning
-            case .empty: Theme.Palette.danger
-            }
-        }
-    }
-
-    /// Transfers the TRX balance can pay for, at the no-energy worst case.
-    private var transfersLeft: Int64 { max(0, app.trxSun / TRX.minimumForTransferSun) }
-
-    private var fuelLevel: FuelLevel {
-        switch transfersLeft {
-        case 0: .empty
-        case 1...2: .low
-        default: .good
-        }
-    }
-
     /// What the wallet holds: USDT, and the TRX that pays its network fees.
     private var currenciesCard: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("Currencies")
-                .font(.headline)
-                .foregroundStyle(Theme.Palette.textPrimary)
+            Button {
+                Haptics.tap()
+                path.append(.currencies)
+            } label: {
+                HStack {
+                    Text("Currencies")
+                        .font(.headline)
+                        .foregroundStyle(Theme.Palette.textPrimary)
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Theme.Palette.textTertiary)
+                }
                 .padding(.horizontal, 18)
                 .padding(.top, 18)
                 .padding(.bottom, 4)
-                .accessibilityAddTraits(.isHeader)
+                .contentShape(.rect)
+            }
+            .buttonStyle(.plain)
+            .zoomSource(id: HomeRoute.currencies, in: zoom)
+            .accessibilityAddTraits(.isHeader)
+            .accessibilityHint("Opens all currencies, prices and charts")
 
             Button {
                 Haptics.tap()
-                app.selectedTab = .activity
+                path.append(.coin(.usdt))
             } label: {
                 CurrencyRow(token: .usdt,
                             amount: USDT.format(units: app.usdtUnits),
@@ -311,13 +345,14 @@ struct WalletView: View {
             }
             .buttonStyle(RowPressStyle())
             .accessibilityLabel(currencyLabel(.usdt, amount: USDT.format(units: app.usdtUnits), value: Double(app.usdtUnits) / 1_000_000))
-            .accessibilityHint("Opens the Activity tab")
+            .zoomSource(id: HomeRoute.coin(.usdt), in: zoom)
+            .accessibilityHint("Opens Tether USD")
 
             Divider().padding(.leading, 74).padding(.trailing, 18)
 
             Button {
                 Haptics.tap()
-                path.append(.fees)
+                path.append(.coin(.trx))
             } label: {
                 CurrencyRow(token: .trx,
                             amount: TRX.format(sun: app.trxSun),
@@ -328,28 +363,22 @@ struct WalletView: View {
                         Image(systemName: "bolt.fill").font(.caption2)
                         Text(feeNote)
                     }
-                    .font(.caption.weight(fuelLevel == .good ? .regular : .semibold))
-                    .foregroundStyle(fuelLevel.color)
+                    .font(.caption.weight(app.fuelLevel == .good ? .regular : .semibold))
+                    .foregroundStyle(app.fuelLevel.color)
                     .lineLimit(1)
                 }
             }
             .buttonStyle(RowPressStyle())
-            .zoomSource(id: HomeRoute.fees, in: zoom)
+            .zoomSource(id: HomeRoute.coin(.trx), in: zoom)
             .accessibilityLabel(currencyLabel(.trx, amount: TRX.format(sun: app.trxSun), value: Double(app.trxSun) / 1_000_000) + ". " + feeNote)
-            .accessibilityHint("Explains network fees")
+            .accessibilityHint("Opens TRON")
         }
         .padding(.bottom, 8)
         .frame(maxWidth: .infinity, alignment: .leading)
         .surface(cornerRadius: Theme.Radius.tile)
     }
 
-    private var feeNote: String {
-        switch fuelLevel {
-        case .empty: String(localized: "Add TRX to send USDT")
-        case .low: String(localized: "Low: about \(transfersLeft) transfers left")
-        case .good: String(localized: "Pays network fees")
-        }
-    }
+    private var feeNote: String { app.fuelLevel.note(transfersLeft: app.transfersLeft) }
 
     private func currencyLabel(_ token: TokenKind, amount: String, value: Double) -> String {
         if hideBalance { return token.symbol }
@@ -361,17 +390,21 @@ struct WalletView: View {
     // MARK: Actions
 
     #if DEBUG
-    /// `-route receive|activity|search|fees|settings|send` opens a screen at launch (screenshots, UI checks).
+    /// `-route receive|activity|currencies|fees|settings|send|coin-usdt|coin-trx` opens a screen at launch (screenshots, UI checks).
     private func openDebugRoute() {
+        guard !debugRouteApplied else { return }
+        debugRouteApplied = true
         let args = CommandLine.arguments
         guard let index = args.firstIndex(of: "-route"), args.indices.contains(index + 1) else { return }
         switch args[index + 1] {
         case "receive": path = [.receive]
         case "activity": app.selectedTab = .activity
-        case "search": app.selectedTab = .search
+        case "currencies": path = [.currencies]
         case "fees": path = [.fees]
         case "settings": path = [.settings]
         case "send": app.sendRequest = .init()
+        case let route where route.hasPrefix("coin-"):
+            if let token = TokenKind(rawValue: String(route.dropFirst(5))) { path = [.coin(token)] }
         default: break
         }
     }
@@ -380,10 +413,11 @@ struct WalletView: View {
     private func copyAddress() {
         guard let address = app.address else { return }
         Clipboard.copy(address)
-        copied = true
+        withAnimation(.snappy) { copied = true }
+        AccessibilityNotification.Announcement(String(localized: "Address copied")).post()
         Task {
             try? await Task.sleep(for: .seconds(1.5))
-            copied = false
+            withAnimation(.snappy) { copied = false }
         }
     }
 }
@@ -547,16 +581,6 @@ private struct BalanceLineChart: View {
     }
 }
 
-/// Dollar values in the same fixed "1,234.56" style as `USDT.format`, whatever
-/// the device region, so the balance and its value never disagree on separators.
-private enum USDPrice {
-    static let locale = Locale(identifier: "en_US")
-
-    static func format(_ value: Double, digits: Int = 2) -> String {
-        value.formatted(.currency(code: "USD").precision(.fractionLength(digits)).locale(locale))
-    }
-}
-
 /// A coin in the Currencies card: icon, symbol and market price on the left,
 /// what you hold and its dollar value on the right. `footnote` sits under the price.
 private struct CurrencyRow<Footnote: View>: View {
@@ -666,6 +690,7 @@ private struct AsciiDotField: View {
 /// address, so different wallets are told apart without leaving the palette.
 struct WalletBadge: View {
     let address: String
+    var size: CGFloat = 44
 
     var body: some View {
         let seed = address.unicodeScalars.reduce(UInt64(5381)) { ($0 << 5) &+ $0 &+ UInt64($1.value) }
@@ -678,36 +703,9 @@ struct WalletBadge: View {
                                  startPoint: UnitPoint(x: 0.5 + 0.5 * cos(angle * .pi / 180), y: 0.5 + 0.5 * sin(angle * .pi / 180)),
                                  endPoint: UnitPoint(x: 0.5 - 0.5 * cos(angle * .pi / 180), y: 0.5 - 0.5 * sin(angle * .pi / 180))))
             .overlay(Circle().strokeBorder(.white.opacity(0.14)))
-            .overlay(Image(systemName: "wallet.bifold.fill").font(.callout).foregroundStyle(.white.opacity(0.92)))
-            .frame(width: 44, height: 44)
-            .accessibilityHidden(true)
-    }
-}
-
-enum TokenKind {
-    case usdt, trx
-
-    var symbol: String { self == .usdt ? "USDT" : "TRX" }
-    var name: String { self == .usdt ? "Tether USD" : "TRON" }
-}
-
-struct TokenIcon: View {
-    let token: TokenKind
-    var size: CGFloat = 42
-
-    var body: some View {
-        Circle()
-            .fill(token == .usdt ? Theme.Palette.usdt : Theme.Palette.trx)
-            .overlay {
-                if token == .usdt {
-                    Text("₮").font(.system(size: size * 0.5, weight: .bold)).foregroundStyle(.white)
-                } else {
-                    Image(systemName: "triangle.fill")
-                        .font(.system(size: size * 0.36, weight: .bold))
-                        .rotationEffect(.degrees(180))
-                        .foregroundStyle(.white)
-                }
-            }
+            .overlay(Image(systemName: "wallet.bifold.fill")
+                .font(.system(size: size * 0.36, weight: .medium))
+                .foregroundStyle(.white.opacity(0.92)))
             .frame(width: size, height: size)
             .accessibilityHidden(true)
     }

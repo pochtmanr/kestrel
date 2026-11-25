@@ -67,12 +67,10 @@ struct RootView: View {
     }
 }
 
-/// Two tabs on the left, search apart on the right (iOS 26 draws it as its
-/// own glass button, like Music). Send is presented here, over any tab.
+/// Wallet and Activity. Send is presented here, over any tab.
 struct MainTabView: View {
     @Environment(AppModel.self) private var app
     @Namespace private var zoom
-    @State private var searchText = ""
 
     var body: some View {
         @Bindable var app = app
@@ -90,11 +88,7 @@ struct MainTabView: View {
             TabView(selection: $app.selectedTab) {
                 Tab("Wallet", systemImage: "wallet.bifold", value: AppModel.Tab.wallet) { WalletView(zoom: zoom) }
                 Tab("Activity", systemImage: "chart.bar.xaxis", value: AppModel.Tab.activity) { ActivityView() }
-                Tab(value: AppModel.Tab.search, role: .search) { AssetSearchView(query: $searchText) }
             }
-            // Search on the tab view (not inside the tab) is what lets the
-            // system detach it into its own button and morph it into a field.
-            .searchable(text: $searchText, prompt: Text("USDT, TRX…"))
             .modifier(MinimizeTabBarOnScroll())
         } else {
             TabView(selection: $app.selectedTab) {
@@ -104,9 +98,6 @@ struct MainTabView: View {
                 ActivityView()
                     .tabItem { Label("Activity", systemImage: "chart.bar.xaxis") }
                     .tag(AppModel.Tab.activity)
-                AssetSearchView(query: $searchText, ownsSearchField: true)
-                    .tabItem { Label("Search", systemImage: "magnifyingglass") }
-                    .tag(AppModel.Tab.search)
             }
         }
     }

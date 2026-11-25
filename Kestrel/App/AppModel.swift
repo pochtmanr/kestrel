@@ -25,9 +25,16 @@ final class AppModel {
 
     /// Market prices (USD). Empty until loaded or when the price source is down.
     private(set) var prices: [TokenKind: TokenPrice] = [:]
+    /// The full market picture behind `prices`: sparklines and stats for the Currencies screen.
+    private(set) var markets: [TokenKind: MarketQuote] = [:]
+    /// When `markets` last arrived (nil = never).
+    private(set) var marketsUpdatedAt: Date?
     private var pricesFetchedAt: Date?
+    /// Coin screen charts, kept a few minutes per coin and range.
+    private var charts: [ChartKey: (points: [PricePoint], fetched: Date)] = [:]
+    private struct ChartKey: Hashable { let token: TokenKind; let range: PriceRange }
 
-    enum Tab: Hashable { case wallet, activity, search }
+    enum Tab: Hashable { case wallet, activity }
     var selectedTab: Tab = .wallet
 
     /// A send to present over whichever tab is showing (nil = none).
@@ -71,7 +78,9 @@ final class AppModel {
         ]
         activity.loadDemo(address: me, now: now)
         lastRefresh = now
-        prices = [.usdt: TokenPrice(usd: 1.0002, change24h: 0.01), .trx: TokenPrice(usd: 0.2431, change24h: 2.37)]
+        markets = MarketDemo.quotes
+        prices = markets.mapValues(\.tokenPrice)
+        marketsUpdatedAt = now
         stage = .unlocked
         // `-activity` with `-demo`: open on the Activity tab (screenshots, UI checks).
         if CommandLine.arguments.contains("-activity") { selectedTab = .activity }
@@ -162,7 +171,33 @@ final class AppModel {
         guard !isDemo else { return }
         if let pricesFetchedAt, Date.now.timeIntervalSince(pricesFetchedAt) < 60 { return }
         pricesFetchedAt = .now
-        if let fresh = try? await priceClient.prices() { prices = fresh }
+        guard let fresh = try? await priceClient.markets(), !fresh.isEmpty else { return }
+        markets = fresh
+        prices = fresh.mapValues(\.tokenPrice)
+        marketsUpdatedAt = .now
+    }
+
+    /// A cached chart, if any (stale or not), for drawing straight away.
+    func cachedChart(for token: TokenKind, range: PriceRange) -> [PricePoint]? {
+        charts[ChartKey(token: token, range: range)]?.points
+    }
+
+    /// Price history for the coin screen. Served from cache for 5 minutes;
+    /// on a failure the stale copy is returned when there is one.
+    func chart(for token: TokenKind, range: PriceRange) async throws -> [PricePoint] {
+        let key = ChartKey(token: token, range: range)
+        #if DEBUG
+        if isDemo { return MarketDemo.chart(for: token, range: range) }
+        #endif
+        if let cached = charts[key], Date.now.timeIntervalSince(cached.fetched) < 300 { return cached.points }
+        do {
+            let points = try await priceClient.chart(for: token, range: range)
+            charts[key] = (points, .now)
+            return points
+        } catch {
+            if let stale = charts[key] { return stale.points }
+            throw error
+        }
     }
 
     /// Hand the fresh balance to the home/lock screen widgets, reloading them

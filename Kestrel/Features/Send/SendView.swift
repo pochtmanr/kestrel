@@ -1,108 +1,137 @@
 import SwiftUI
 
-/// Send USDT in two steps: where to (address, network, fee), then how much
-/// (big amount, balance, keypad). Review and PIN/Face ID confirm as before.
+/// Send USDT: where to (address, network, fee), how much (keypad), a review,
+/// PIN or Face ID, then a status screen that follows the transfer from
+/// "Sending" to "Confirmed", or explains what went wrong and what's safe to do.
 struct SendView: View {
     @Environment(AppModel.self) private var app
     @Environment(\.dismiss) private var dismiss
 
     @State private var recipient: String
-    @State private var path: [Step] = []
-
-    init(recipient: String = "", amount: String = "") {
-        _recipient = State(initialValue: recipient)
-        _amount = State(initialValue: amount)
-    }
     @State private var amount: String
+    @State private var path = NavigationPath()
+    /// A line under the address field: what a pasted request filled in, or why a paste did nothing.
+    @State private var fieldNote: String?
     @State private var showScanner = false
     @State private var showReview = false
     @State private var showPIN = false
     @State private var showSupport = false
-    @State private var sending = false
-    @State private var sentTxID: String?
-    @State private var sentUnits: UInt64 = 0
-    @State private var repeatTo: String?
-    @State private var error: String?
+    /// Face ID is up: the confirm button must not start a second prompt.
+    @State private var authorizing = false
+    /// The transfer that PIN or Face ID is approving.
+    @State private var approving: SendTransfer?
+    /// Set once a transfer is submitted: the status screen covers the flow.
+    @State private var submission: SendSubmission?
+    #if DEBUG
+    @State private var debugTRXSun: Int64?
+    @State private var debugFailure: SendFailure?
+    #endif
 
     private enum Step: Hashable { case amount }
 
-    private var trimmedRecipient: String { recipient.trimmingCharacters(in: .whitespacesAndNewlines) }
-    private var recipientValid: Bool { TronAddress.isValid(trimmedRecipient) }
-    private var units: UInt64? { USDT.units(from: amount) }
-
-    private var addressProblem: String? {
-        if !recipient.isEmpty && !recipientValid { return "That isn't a valid TRON address." }
-        if trimmedRecipient == app.address { return "That's your own address." }
-        return nil
-    }
-
-    private var amountProblem: String? {
-        if !amount.isEmpty, let units {
-            if units < 1_000_000 { return "Minimum transfer is 1 USDT." }
-            if units > app.usdtUnits { return "More than your balance." }
+    init(recipient: String = "", amount: String = "") {
+        // A prefill can be a whole payment request ("tron:T…?amount=5").
+        if PaymentRequest.isRequestLike(recipient), let request = PaymentRequest.parse(recipient) {
+            _recipient = State(initialValue: request.address)
+            _amount = State(initialValue: request.amount ?? amount)
+        } else {
+            _recipient = State(initialValue: recipient)
+            _amount = State(initialValue: amount)
         }
-        if !app.hasGasForTransfer { return "You need at least 14 TRX for the network fee." }
-        return nil
     }
 
-    private var canContinue: Bool { recipientValid && addressProblem == nil }
-    private var canReview: Bool { canContinue && units != nil && amountProblem == nil }
+    // MARK: Derived state
+
+    private var trimmedRecipient: String { recipient.trimmingCharacters(in: .whitespacesAndNewlines) }
+    private var recipientCheck: RecipientCheck { RecipientRules.check(recipient, ownAddress: app.address) }
+    /// Balances are only judged once they've loaded at least once.
+    private var balancesKnown: Bool { app.isDemo || app.lastRefresh != nil }
+
+    private var trxSun: Int64 {
+        #if DEBUG
+        if let debugTRXSun { return debugTRXSun }
+        #endif
+        return app.trxSun
+    }
+
+    private var hasFee: Bool { trxSun >= TRX.minimumForTransferSun }
+
+    private var amountCheck: AmountCheck {
+        AmountRules.check(amount, usdtUnits: balancesKnown ? app.usdtUnits : nil, trxSun: balancesKnown ? trxSun : nil)
+    }
+
+    private var canContinue: Bool { recipientCheck.isValid }
+    private var canReview: Bool { canContinue && amountCheck.units != nil }
+
+    // MARK: Body
 
     var body: some View {
-        NavigationStack(path: $path) {
-            addressStep
-                .navigationDestination(for: Step.self) { _ in amountStep }
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button { dismiss() } label: { Image(systemName: "xmark") }
-                            .accessibilityLabel("Close")
+        ZStack {
+            NavigationStack(path: $path) {
+                addressStep
+                    .navigationDestination(for: Step.self) { _ in amountStep }
+                    .navigationDestination(for: HomeRoute.self) { RouteDestination(route: $0) }
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button { dismiss() } label: { Image(systemName: "xmark") }
+                                .accessibilityLabel("Close")
+                        }
                     }
-                }
-        }
-        .onAppear {
-            // Repeat payment: the address is known, go straight to the amount.
-            if canContinue && path.isEmpty { path = [.amount] }
-        }
-        .sheet(isPresented: $showScanner) {
-            QRScannerSheet { scanned in
-                recipient = Self.address(fromScan: scanned)
-                showScanner = false
+            }
+
+            if let submission {
+                SendStatusView(
+                    submission: submission,
+                    onDone: { dismiss() },
+                    onRetry: { authorize(SendTransfer(to: submission.to, units: submission.units)) },
+                    onEdit: { closeStatus(then: [Step.amount]) },
+                    onReceiveTRX: { closeStatus(then: [Step.amount], route: .receive) },
+                    onFees: { closeStatus(then: [Step.amount], route: .fees) },
+                    onActivity: {
+                        app.selectedTab = .activity
+                        dismiss()
+                    },
+                    onFound: { txID in
+                        Haptics.success()
+                        self.submission?.state = .sent(txID: txID)
+                    },
+                    onSupport: { showSupport = true }
+                )
+                .transition(.opacity)
+                .zIndex(1)
             }
         }
+        .animation(.snappy, value: submission?.state)
+        .onAppear {
+            #if DEBUG
+            openDebugPreview()
+            #endif
+            // Repeat payment: the address is known, go straight to the amount.
+            if canContinue && path.isEmpty { path.append(Step.amount) }
+        }
+        .task {
+            // Fresh balances for the checks; the home may not have loaded them yet.
+            async let prices: Void = app.refreshPrices()
+            await app.refresh()
+            await prices
+        }
+        .onChange(of: recipient) { _, text in applyRequest(text) }
+        .sheet(isPresented: $showScanner) {
+            QRScannerSheet { scanned in handleScan(scanned) }
+        }
         .sheet(isPresented: $showReview) {
-            ReviewTransferSheet(recipient: trimmedRecipient, units: units ?? 0, sending: sending) {
-                authorize()
+            if let units = amountCheck.units {
+                ReviewTransferSheet(recipient: trimmedRecipient, units: units, authorizing: authorizing) {
+                    authorize(SendTransfer(to: trimmedRecipient, units: units))
+                }
             }
         }
         .sheet(isPresented: $showPIN) {
-            ConfirmWithPINSheet(title: "Confirm transfer") { send() }
+            ConfirmWithPINSheet(title: "Confirm transfer") {
+                if let approving { send(approving) }
+            }
         }
         .sheet(isPresented: $showSupport) { SupportChatSheet() }
-        // Step 3: the transfer's details, "Processing" until TRON confirms it.
-        .fullScreenCover(item: Binding(get: { sentTxID.map(SentTransfer.init) }, set: { sentTxID = $0?.id }), onDismiss: {
-            // Repeat payment: same address, new amount. Otherwise the send is done.
-            if let to = repeatTo {
-                recipient = to
-                amount = ""
-                path = [.amount]
-                repeatTo = nil
-            } else {
-                dismiss()
-            }
-        }) { sent in
-            TransferDetailView(
-                transfer: TokenTransfer(id: sent.id, date: .now, from: app.address ?? "", to: trimmedRecipient, units: sentUnits),
-                myAddress: app.address ?? "",
-                onRepeat: { to in
-                    repeatTo = to
-                    sentTxID = nil
-                },
-                pending: true
-            )
-        }
-        .alert("Transfer failed", isPresented: .constant(error != nil)) {
-            Button("OK") { error = nil }
-        } message: { Text(error ?? "") }
     }
 
     // MARK: Step 1 — where to
@@ -110,30 +139,10 @@ struct SendView: View {
     private var addressStep: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
-                Text("Send").font(.system(size: 32, weight: .bold))
+                Text("Send").font(.largeTitle.bold())
 
-                HStack(spacing: 14) {
-                    TextField("Destination address", text: $recipient, axis: .vertical)
-                        .font(recipient.isEmpty ? .body : .body.monospaced())
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                    Button { showScanner = true } label: { Image(systemName: "qrcode.viewfinder") }
-                        .accessibilityLabel("Scan QR code")
-                    Button {
-                        recipient = Clipboard.string?.trimmingCharacters(in: .whitespacesAndNewlines) ?? recipient
-                    } label: { Image(systemName: "doc.on.clipboard") }
-                        .accessibilityLabel("Paste address")
-                }
-                .font(.title3)
-                .foregroundStyle(.primary)
-                .buttonStyle(.plain)
-                .padding(.horizontal, 16)
-                .frame(minHeight: 60)
-                .surface(cornerRadius: Theme.Radius.card)
-
-                if let addressProblem {
-                    Text(addressProblem).font(.footnote).foregroundStyle(Theme.Palette.danger).padding(.horizontal, 4)
-                }
+                addressField
+                addressStatus
 
                 Text("Network").font(.headline).foregroundStyle(.secondary).padding(.horizontal, 4).padding(.top, 6)
                 VStack(spacing: 0) {
@@ -147,11 +156,12 @@ struct SendView: View {
                     }
                     .padding(.horizontal, 16)
                     .frame(minHeight: 68)
+                    .accessibilityElement(children: .combine)
                     Divider().padding(.leading, 16)
                     infoRow("Transfer time", icon: "timer", value: "≈ 1 minute")
                     Divider().padding(.leading, 16)
                     infoRow("Network fee", icon: "bolt", value: "≈ 13–14 TRX",
-                            warning: app.hasGasForTransfer ? nil : "You have \(TRX.format(sun: app.trxSun)) TRX")
+                            warning: balancesKnown && !hasFee ? String(localized: "You have \(TRX.format(sun: trxSun)) TRX") : nil)
                 }
                 .surface(cornerRadius: Theme.Radius.card)
 
@@ -166,7 +176,7 @@ struct SendView: View {
         .scrollDismissesKeyboard(.interactively)
         .background(Theme.Palette.background)
         .safeAreaInset(edge: .bottom) {
-            BlackButton(title: "Next", enabled: canContinue) { path = [.amount] }
+            BlackButton(title: "Next", enabled: canContinue) { path.append(Step.amount) }
                 .padding(.horizontal, Theme.Spacing.screen)
                 .padding(.bottom, 8)
                 .readableWidth()
@@ -176,9 +186,81 @@ struct SendView: View {
         }
     }
 
-    private func infoRow(_ title: String, icon: String, value: String, warning: String? = nil) -> some View {
+    private var addressField: some View {
+        HStack(spacing: 14) {
+            TextField("Destination address", text: $recipient, axis: .vertical)
+                .lineLimit(1 ... 3)
+                .font(recipient.isEmpty ? .body : .body.monospaced())
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .submitLabel(.done)
+                .accessibilityLabel("Destination address")
+            if !recipient.isEmpty {
+                Button {
+                    recipient = ""
+                    fieldNote = nil
+                } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(.tertiary) }
+                    .accessibilityLabel("Clear address")
+            }
+            Button { showScanner = true } label: { Image(systemName: "qrcode.viewfinder") }
+                .accessibilityLabel("Scan QR code")
+            Button(action: paste) { Image(systemName: "doc.on.clipboard") }
+                .accessibilityLabel("Paste address")
+        }
+        .font(.title3)
+        .foregroundStyle(.primary)
+        .buttonStyle(.plain)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .frame(minHeight: 60)
+        .surface(cornerRadius: Theme.Radius.card)
+        .overlay(
+            RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous)
+                .strokeBorder(hasRecipientProblem ? Theme.Palette.danger : .clear, lineWidth: 1.5)
+                .allowsHitTesting(false)
+        )
+    }
+
+    private var hasRecipientProblem: Bool {
+        if case .problem = recipientCheck { return true }
+        return false
+    }
+
+    @ViewBuilder
+    private var addressStatus: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            switch recipientCheck {
+            case .problem(let problem):
+                statusLine(problem.message, icon: "exclamationmark.circle.fill", color: Theme.Palette.danger)
+            case .incomplete(let count):
+                Text("\(count) of \(RecipientRules.addressLength) characters")
+                    .font(.footnote.monospacedDigit())
+                    .foregroundStyle(.secondary)
+            case .valid:
+                statusLine(String(localized: "Valid TRON address"), icon: "checkmark.circle.fill", color: Theme.Palette.positive)
+            case .empty:
+                EmptyView()
+            }
+            if let fieldNote {
+                statusLine(fieldNote, icon: "info.circle.fill", color: Theme.Palette.accentText)
+            }
+        }
+        .padding(.horizontal, 4)
+    }
+
+    private func statusLine(_ text: String, icon: String, color: Color) -> some View {
+        Label {
+            Text(text).fixedSize(horizontal: false, vertical: true)
+        } icon: {
+            Image(systemName: icon)
+        }
+        .font(.footnote)
+        .foregroundStyle(color)
+    }
+
+    private func infoRow(_ title: LocalizedStringKey, icon: String, value: LocalizedStringKey, warning: String? = nil) -> some View {
         HStack(spacing: 12) {
-            Image(systemName: icon).frame(width: 26)
+            Image(systemName: icon).frame(width: 26).accessibilityHidden(true)
             Text(title).foregroundStyle(.secondary).lineLimit(1).layoutPriority(1)
             Spacer(minLength: 8)
             VStack(alignment: .trailing, spacing: 2) {
@@ -187,15 +269,17 @@ struct SendView: View {
             }
         }
         .padding(.horizontal, 16)
+        .padding(.vertical, 8)
         .frame(minHeight: 56)
+        .accessibilityElement(children: .combine)
     }
 
     // MARK: Step 2 — how much
 
     private var amountStep: some View {
         VStack(spacing: 0) {
-            Spacer()
-            VStack(spacing: 14) {
+            Spacer(minLength: 8)
+            VStack(spacing: 12) {
                 HStack(alignment: .firstTextBaseline, spacing: 10) {
                     Text(amount.isEmpty ? "0" : amount)
                         .foregroundStyle(amount.isEmpty ? Color.secondary : Color.primary)
@@ -207,6 +291,16 @@ struct SendView: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.4)
                 .padding(.horizontal, Theme.Spacing.screen)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("Amount")
+                .accessibilityValue(Text("\(amount.isEmpty ? "0" : amount) USDT"))
+
+                if let usd = usdEquivalent {
+                    Text(verbatim: "≈ \(usd)")
+                        .font(.subheadline.monospacedDigit())
+                        .foregroundStyle(.secondary)
+                        .accessibilityLabel("About \(usd)")
+                }
 
                 Button { fillMax() } label: {
                     Label("\(balanceText) USDT", systemImage: "wallet.bifold")
@@ -216,26 +310,39 @@ struct SendView: View {
                         .surface(cornerRadius: Theme.Radius.tile)
                 }
                 .buttonStyle(.plain)
+                .disabled(!balancesKnown || app.usdtUnits == 0)
+                .accessibilityLabel("Balance: \(balanceText) USDT")
                 .accessibilityHint("Sends your whole balance")
 
-                Text(amountProblem ?? " ")
-                    .font(.footnote)
-                    .foregroundStyle(amountProblem?.contains("TRX") == true ? Theme.Palette.warning : Theme.Palette.danger)
+                amountMessage
             }
-            Spacer()
+            Spacer(minLength: 8)
+
+            if balancesKnown && !hasFee {
+                FeeNeededCard(trxSun: trxSun,
+                              onReceive: { path.append(HomeRoute.receive) },
+                              onFees: { path.append(HomeRoute.fees) })
+                    .padding(.horizontal, Theme.Spacing.screen)
+                    .padding(.bottom, 12)
+                    .readableWidth()
+            }
 
             HStack(spacing: 12) {
                 Button { fillMax() } label: {
                     Text("Max")
                         .font(.headline)
-                        .frame(width: 64, height: 56)
+                        .frame(minWidth: 64, minHeight: 56)
+                        .padding(.horizontal, 4)
                         .surface(cornerRadius: Theme.Radius.hero)
                 }
                 .buttonStyle(.plain)
-                BlackButton(title: "Next", enabled: canReview) { showReview = true }
+                .disabled(!balancesKnown || app.usdtUnits == 0)
+                .accessibilityHint("Fills in your whole USDT balance")
+                BlackButton(title: "Review", enabled: canReview) { showReview = true }
             }
             .padding(.horizontal, Theme.Spacing.screen)
             .padding(.bottom, 12)
+            .readableWidth()
 
             AmountKeypad(amount: $amount)
         }
@@ -247,35 +354,103 @@ struct SendView: View {
                     Text(trimmedRecipient.shortAddress).font(.headline.monospaced())
                     Text("Tron TRC-20").font(.caption).foregroundStyle(.secondary)
                 }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("Sending to \(trimmedRecipient)")
             }
             ToolbarItem(placement: .topBarTrailing) { SupportButton(inToolbar: true) { showSupport = true } }
         }
     }
 
+    /// One line, always there, so the layout doesn't jump as the message comes and goes.
+    @ViewBuilder
+    private var amountMessage: some View {
+        if case .problem(let problem) = amountCheck, problem != .needsTRX {
+            Text(problem.message)
+                .font(.footnote)
+                .foregroundStyle(problem.isWarning ? Color.secondary : Theme.Palette.danger)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, Theme.Spacing.screen)
+        } else {
+            Text(verbatim: " ").font(.footnote).accessibilityHidden(true)
+        }
+    }
+
+    private var usdEquivalent: String? {
+        guard let price = app.prices[.usdt]?.usd, let units = USDT.units(from: amount), units > 0 else { return nil }
+        return USDPrice.format(Double(units) / 1_000_000 * price)
+    }
+
     /// The balance with two decimals, or more only when the wallet holds dust.
     private var balanceText: String {
-        USDT.format(units: app.usdtUnits, fractionDigits: app.usdtUnits % 10_000 == 0 ? 2 : 6)
+        guard balancesKnown else { return "…" }
+        return USDT.format(units: app.usdtUnits, fractionDigits: app.usdtUnits % 10_000 == 0 ? 2 : 6)
     }
 
     private func fillMax() {
-        amount = USDT.format(units: app.usdtUnits, fractionDigits: 6)
-            .replacingOccurrences(of: ",", with: "")
-            .replacingOccurrences(of: #"\.?0+$"#, with: "", options: .regularExpression)
+        Haptics.tap()
+        amount = AmountRules.text(units: app.usdtUnits)
     }
 
-    /// Accepts a bare address or a "tron:T…?amount=" style payment URI.
-    static func address(fromScan text: String) -> String {
-        var value = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        if let colon = value.firstIndex(of: ":") { value = String(value[value.index(after: colon)...]) }
-        if let query = value.firstIndex(of: "?") { value = String(value[..<query]) }
-        return value
+    // MARK: Paste and scan
+
+    private func paste() {
+        guard let text = Clipboard.string?.trimmingCharacters(in: .whitespacesAndNewlines), !text.isEmpty else {
+            fieldNote = String(localized: "There's nothing to paste. Copy an address first.")
+            return
+        }
+        fieldNote = nil
+        recipient = text
     }
 
-    private func authorize() {
+    /// A pasted or typed request: keep its address, move its amount to step 2.
+    private func applyRequest(_ text: String) {
+        guard PaymentRequest.isRequestLike(text), let request = PaymentRequest.parse(text),
+              request.address != text else { return }
+        recipient = request.address
+        if let requested = request.amount {
+            amount = requested
+            fieldNote = String(localized: "Amount from the payment request: \(requested) USDT")
+        } else if request.otherToken {
+            fieldNote = String(localized: "This request is for another coin. Enter the USDT amount yourself.")
+        }
+    }
+
+    /// nil accepts the code (and closes the scanner); a message keeps it open.
+    private func handleScan(_ scanned: String) -> String? {
+        let request = PaymentRequest.parse(scanned)
+        let address = request?.address ?? scanned.trimmingCharacters(in: .whitespacesAndNewlines)
+        switch RecipientRules.check(address, ownAddress: app.address) {
+        case .valid:
+            recipient = address
+            if let requested = request?.amount {
+                amount = requested
+                fieldNote = String(localized: "Amount from the payment request: \(requested) USDT")
+            } else {
+                fieldNote = request?.otherToken == true
+                    ? String(localized: "This request is for another coin. Enter the USDT amount yourself.") : nil
+            }
+            showScanner = false
+            return nil
+        case .problem(let problem) where [.ownAddress, .tokenContract, .ethereumAddress].contains(problem):
+            return problem.message
+        default:
+            return String(localized: "This QR code isn't a TRON address. Try another code, or paste the address.")
+        }
+    }
+
+    // MARK: Authorise and send
+
+    /// PIN or Face ID, exactly as before: Face ID when it's on, falling back to the PIN.
+    private func authorize(_ transfer: SendTransfer) {
+        guard !authorizing else { return }
+        approving = transfer
         if Biometrics.isEnabled {
+            authorizing = true
             Task {
-                if await Biometrics.authenticate(reason: "Confirm sending USDT") {
-                    send()
+                let approved = await Biometrics.authenticate(reason: "Confirm sending USDT")
+                authorizing = false
+                if approved {
+                    send(transfer)
                 } else {
                     showReview = false
                     showPIN = true
@@ -287,28 +462,173 @@ struct SendView: View {
         }
     }
 
-    private func send() {
-        guard let units, !sending else { return }
-        sending = true
-        Task {
-            defer { sending = false }
-            do {
-                guard let keys = try WalletVault.keys() else { throw TronClient.Failure.rejected("Wallet not found on this device.") }
-                let txID = try await app.tron.sendUSDT(from: keys, to: trimmedRecipient, units: units)
-                Haptics.success()
-                showReview = false
-                sentUnits = units
-                sentTxID = txID
-                Task { await app.refresh() }
-            } catch {
-                Haptics.error()
-                showReview = false
-                let message = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
-                self.error = message.localizedCaseInsensitiveContains("balance") || message.localizedCaseInsensitiveContains("energy")
-                    ? "Not enough USDT or TRX in your wallet. You need about 14 TRX for the network fee."
-                    : message
-            }
+    private func send(_ transfer: SendTransfer) {
+        // One broadcast per approval, whatever gets tapped twice.
+        if submission?.state == .sending { return }
+        showReview = false
+        let started = Date.now
+        withAnimation(.snappy) {
+            submission = SendSubmission(to: transfer.to, units: transfer.units, from: app.address ?? "",
+                                        started: started, knownIDs: Set(app.history.map(\.id)), state: .sending)
         }
+        let usdtBalance = app.usdtUnits
+        Task {
+            let outcome: SendSubmission.State
+            do {
+                let txID = try await broadcast(transfer)
+                outcome = .sent(txID: txID)
+            } catch {
+                outcome = .failed(SendFailure.from(error, units: transfer.units, usdtBalance: usdtBalance))
+            }
+            if case .sent = outcome { Haptics.success() } else { Haptics.error() }
+            submission?.state = outcome
+            Task { await app.refresh() }
+        }
+    }
+
+    private func broadcast(_ transfer: SendTransfer) async throws -> String {
+        #if DEBUG
+        // The demo wallet never touches the network or the Keychain's real keys.
+        if app.isDemo {
+            try await Task.sleep(for: .seconds(1.5))
+            if let debugFailure { throw DebugSendError(failure: debugFailure) }
+            return "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+        #endif
+        let keys: TronKeys
+        do {
+            guard let stored = try WalletVault.keys() else { throw WalletMissing() }
+            keys = stored
+        } catch {
+            throw WalletMissing()
+        }
+        return try await app.tron.sendUSDT(from: keys, to: transfer.to, units: transfer.units)
+    }
+
+    /// Leave the status screen for an earlier step (to fix what failed).
+    private func closeStatus(then steps: [Step], route: HomeRoute? = nil) {
+        withAnimation(.snappy) { submission = nil }
+        var next = NavigationPath()
+        steps.forEach { next.append($0) }
+        if let route { next.append(route) }
+        path = next
+    }
+
+    // MARK: Debug previews
+
+    #if DEBUG
+    /// `-sendPreview amount|review|lowtrx|invalid|own|sending|success|fail-<kind>` with `-demo -route send`:
+    /// opens Send in that state (screenshots, UI checks). Kinds: offline, busy, trx, usdt, rejected, timeout, unknown.
+    private func openDebugPreview() {
+        let args = CommandLine.arguments
+        guard app.isDemo, let index = args.firstIndex(of: "-sendPreview"), args.indices.contains(index + 1) else { return }
+        let to = "TXJgMdjVX5dKiQaUi9QobwNxtSQaFqccvd"
+        let units: UInt64 = 125_500_000
+        let preview = args[index + 1]
+        func status(_ state: SendSubmission.State) {
+            submission = SendSubmission(to: to, units: units, from: app.address ?? "", started: .now, knownIDs: [], state: state)
+        }
+        switch preview {
+        case "invalid": recipient = "TXJgMdjVX5dKiQaUi9QobwNxtSQaFqccvx"
+        case "own": recipient = app.address ?? ""
+        case "amount", "review", "lowtrx", "over":
+            recipient = to
+            amount = preview == "over" ? "9000" : "125.5"
+            if preview == "lowtrx" { debugTRXSun = 3_200_000 }
+            path.append(Step.amount)
+            if preview == "review" {
+                Task {
+                    try? await Task.sleep(for: .milliseconds(600))
+                    showReview = true
+                }
+            }
+        case "sending": status(.sending)
+        case "success": status(.sent(txID: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"))
+        case let kind where kind.hasPrefix("fail-"):
+            let failure: SendFailure = switch kind.dropFirst(5) {
+            case "offline": .offline
+            case "busy": .rateLimited
+            case "trx": .insufficientTRX
+            case "usdt": .insufficientUSDT
+            case "rejected": .rejected("Contract validate error : Validate TransferContract error, no OwnerAccount.")
+            case "timeout": .outcomeUnknown
+            default: .unknown("The data couldn't be read because it isn't in the correct format.")
+            }
+            debugFailure = failure
+            status(.failed(failure))
+        default: break
+        }
+    }
+    #endif
+}
+
+#if DEBUG
+/// Lets the demo send fail with a chosen failure.
+private struct DebugSendError: Error { let failure: SendFailure }
+#endif
+
+/// What PIN or Face ID approves: one recipient, one amount.
+struct SendTransfer: Equatable {
+    let to: String
+    let units: UInt64
+}
+
+/// A transfer handed to the network, and how it's going.
+struct SendSubmission: Equatable {
+    let to: String
+    let units: UInt64
+    let from: String
+    let started: Date
+    /// History before the send, so an unclear outcome can spot the new transfer.
+    let knownIDs: Set<String>
+    var state: State
+
+    enum State: Equatable {
+        case sending
+        case sent(txID: String)
+        case failed(SendFailure)
+    }
+}
+
+/// What to do when the TRX balance can't pay the network fee.
+private struct FeeNeededCard: View {
+    let trxSun: Int64
+    let onReceive: () -> Void
+    let onFees: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Label {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Add TRX to pay the network fee").font(.subheadline.weight(.semibold))
+                    Text("A USDT transfer burns about 13–14 TRX. You have \(TRX.format(sun: trxSun)) TRX.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            } icon: {
+                Image(systemName: "bolt.fill").foregroundStyle(Theme.Palette.warning)
+            }
+            .accessibilityElement(children: .combine)
+            HStack(spacing: 8) {
+                Button(action: onReceive) {
+                    Label("Receive TRX", systemImage: "arrow.down.left")
+                        .font(.subheadline.weight(.semibold))
+                        .frame(maxWidth: .infinity, minHeight: 40)
+                        .foregroundStyle(.white)
+                        .background(Theme.Palette.accent, in: .capsule)
+                }
+                Button(action: onFees) {
+                    Text("About fees")
+                        .font(.subheadline.weight(.semibold))
+                        .frame(maxWidth: .infinity, minHeight: 40)
+                        .background(Theme.Palette.surfaceRaised, in: .capsule)
+                }
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(14)
+        .surface(cornerRadius: Theme.Radius.card)
     }
 }
 
@@ -347,7 +667,7 @@ private struct AmountKeypad: View {
                                 if key == "⌫" {
                                     Image(systemName: "delete.left")
                                 } else {
-                                    Text(key)
+                                    Text(verbatim: key)
                                 }
                             }
                             .font(Theme.Typography.amount(28, weight: .medium))
@@ -356,7 +676,7 @@ private struct AmountKeypad: View {
                             .contentShape(.rect)
                         }
                         .buttonStyle(.plain)
-                        .accessibilityLabel(key == "⌫" ? "Delete" : key == "." ? "Decimal point" : key)
+                        .accessibilityLabel(key == "⌫" ? Text("Delete") : key == "." ? Text("Decimal point") : Text(verbatim: key))
                     }
                 }
             }
@@ -377,61 +697,5 @@ private struct AmountKeypad: View {
             if let dot = amount.firstIndex(of: "."), amount.distance(from: dot, to: amount.endIndex) > 6 { return }
             if amount == "0" { amount = key } else if amount.count < 12 { amount += key }
         }
-    }
-}
-
-private struct SentTransfer: Identifiable {
-    let id: String
-}
-
-private struct ReviewTransferSheet: View {
-    let recipient: String
-    let units: UInt64
-    let sending: Bool
-    let onConfirm: () -> Void
-    @Environment(\.dismiss) private var dismiss
-
-    var body: some View {
-        NavigationStack {
-            VStack(spacing: 24) {
-                VStack(spacing: 6) {
-                    Text("You're sending").foregroundStyle(.secondary)
-                    Text("\(USDT.format(units: units, fractionDigits: 6).replacingOccurrences(of: #"\.?0+$"#, with: "", options: .regularExpression)) USDT")
-                        .font(Theme.Typography.amount(40, weight: .bold))
-                        .minimumScaleFactor(0.5)
-                        .lineLimit(1)
-                }
-                VStack(alignment: .leading, spacing: 14) {
-                    LabeledContent("To") { Text(recipient).font(.footnote.monospaced()).multilineTextAlignment(.trailing) }
-                    Divider()
-                    LabeledContent("Network", value: "TRON (TRC20)")
-                    Divider()
-                    LabeledContent("Network fee", value: "≈ 13–14 TRX")
-                }
-                .padding(18)
-                .surface(cornerRadius: Theme.Radius.xl)
-
-                Text("Transfers on the blockchain are final. Check the address before you confirm.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-
-                Spacer()
-                Button(action: onConfirm) {
-                    if sending { ProgressView().tint(.white) } else {
-                        Label("Confirm with \(Biometrics.isEnabled ? Biometrics.label : "PIN")",
-                              systemImage: Biometrics.isEnabled ? Biometrics.symbol : "lock.fill")
-                    }
-                }
-                .buttonStyle(PrimaryButtonStyle())
-                .disabled(sending)
-            }
-            .padding(24)
-            .navigationTitle("Review")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Back") { dismiss() }.disabled(sending) } }
-        }
-        .presentationDetents([.large])
-        .interactiveDismissDisabled(sending)
     }
 }

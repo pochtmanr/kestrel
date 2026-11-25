@@ -17,20 +17,22 @@ to App Group defaults, and refreshes from TronGrid itself.
 
 ## Folders
 
-- `App/`: `KestrelApp` (entry point, `RootView` stage switch, `MainTabView` with the Wallet, Receive
-  and Settings tabs) and `AppModel` (stage: setup → createPIN → locked → unlocked, balances, history,
+- `App/`: `KestrelApp` (entry point, `RootView` stage switch, `MainTabView` with the Wallet and Activity
+  tabs; pushed screens hide the tab bar) and `AppModel` (stage: setup → createPIN → locked → unlocked, balances, history,
   erase, widget snapshot). In DEBUG, `-demo` loads sample data.
 - `Shared/` (app + widget): `Theme` (design tokens), `Brand` (name and app group from Info.plist),
   `TronClient` (reads), `TronAddress`, `Encoding` (hex, Base58), `SharedWallet` (widget snapshot).
 - `Services/` (app only): `SecureStore` (Keychain, `WalletVault`, `PinStore`, `Biometrics`,
   `SupportIdentity`), `TronClient+Send` (build, sign, broadcast), `Backend` (Supabase client),
-  `PriceClient` (CoinGecko prices) and `ActivityStore` (cached full USDT history and fees).
+  `PriceClient` (CoinGecko markets: price, 24h/7d change, sparkline, stats, and price history up to 1 year;
+  coin ids only, never the address) and `ActivityStore` (cached full USDT history and fees).
 - `Crypto/`: `Mnemonic` (BIP-39), `TronKeys` (BIP-32/44, address, signing), `Secp256k1`, `Keccak256`.
 - `UI/Components.swift`: shared views and styles (buttons, surfaces, QR code, support button,
   appearance).
 - `Features/`: Onboarding (create, restore, backup), Lock (PIN setup, lock screen, PIN confirm sheet),
   Wallet (home, transfer detail, fee info), Activity (timeframe charts, insights, search and filters;
-  `ActivityAnalytics` holds the pure balance/flow/insight maths), Search (coins), Send (form, QR scanner), Deposit (receive),
+  `ActivityAnalytics` holds the pure balance/flow/insight maths), Currencies (portfolio value, allocation, coin list with sparklines and search, and the coin screen with its
+  price chart, position, market stats and transfers or fees; `TokenKind` is the coin registry and `Market` the pure maths), Send (form, QR scanner), Deposit (receive: QR and `tron:` payment-request URI, live "Received" detection; pure logic in `ReceiveLogic`),
   Settings, Support (Chatwoot sheet and `SupportConfig`).
 
 ## Theming

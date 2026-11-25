@@ -15,7 +15,8 @@ wallet talks to TronGrid only. The Supabase backend (`Backend`) is for optional 
 |---|---|
 | Change a target, bundle ID, version, team, plist value or URL scheme | `project.yml`, then `xcodegen generate` |
 | App state, stages (setup → PIN → locked → unlocked), tabs | `Kestrel/App/AppModel.swift`, `Kestrel/App/KestrelApp.swift` |
-| Change a screen | `Kestrel/Features/<Area>/` (Wallet, Send, Deposit = receive, Lock, Onboarding, Settings, Support) |
+| Change a screen | `Kestrel/Features/<Area>/` (Wallet, Activity, Currencies, Send, Deposit = receive, Lock, Onboarding, Settings, Support) |
+| Add a coin, or change prices, charts and market data | `TokenKind` in `Kestrel/Features/Currencies/TokenKind.swift` (the coin registry), `Kestrel/Services/PriceClient.swift` (CoinGecko) |
 | Colours, radii, spacing, type | `Kestrel/Shared/Theme.swift` (design tokens, shared with the widget) |
 | A button, row, sheet style | `Kestrel/UI/Components.swift` |
 | TronGrid reads (balance, history) | `Kestrel/Shared/TronClient.swift` (shared with the widget) |

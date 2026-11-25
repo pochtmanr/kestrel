@@ -489,7 +489,7 @@ private struct ActivityHeader: View {
                 .frame(height: 190)
                 .id(mode)
                 .transition(.opacity)
-            TimeframePicker(selection: $timeframe)
+            PillPicker(selection: $timeframe, options: Timeframe.allCases) { $0.title }
             coverageNote
         }
         .padding(Theme.Spacing.l)
@@ -637,41 +637,6 @@ private struct ActivityHeader: View {
             .font(.footnote)
             .foregroundStyle(Theme.Palette.textSecondary)
         }
-    }
-}
-
-/// The 7D…All pills: an accent capsule slides to the chosen one.
-private struct TimeframePicker: View {
-    @Binding var selection: Timeframe
-    @Namespace private var namespace
-
-    var body: some View {
-        HStack(spacing: 0) {
-            ForEach(Timeframe.allCases) { timeframe in
-                let selected = timeframe == selection
-                Button {
-                    withAnimation(.snappy(duration: 0.3)) { selection = timeframe }
-                } label: {
-                    Text(timeframe.title)
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(selected ? Color.white : Theme.Palette.textSecondary)
-                        .frame(maxWidth: .infinity, minHeight: 34)
-                        .background {
-                            if selected {
-                                Capsule()
-                                    .fill(Theme.Palette.accent)
-                                    .matchedGeometryEffect(id: "pill", in: namespace)
-                            }
-                        }
-                        .contentShape(.capsule)
-                }
-                .buttonStyle(.plain)
-                .accessibilityAddTraits(selected ? .isSelected : [])
-            }
-        }
-        .padding(3)
-        .background(Theme.Palette.surfaceRaised, in: .capsule)
-        .sensoryFeedback(.selection, trigger: selection)
     }
 }
 

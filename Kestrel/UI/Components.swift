@@ -252,3 +252,61 @@ private struct RoundGlass: ViewModifier {
         }
     }
 }
+
+/// `RoundGlass` for any shape: the system's interactive glass on iOS 26, a
+/// solid slate surface before that. Used by header chrome that isn't a circle.
+private struct ChromeGlass<S: Shape>: ViewModifier {
+    let shape: S
+
+    func body(content: Content) -> some View {
+        if #available(iOS 26, *) {
+            content.glassEffect(.regular.interactive(), in: shape)
+        } else {
+            content
+                .background(Theme.Palette.surface, in: shape)
+                .overlay(shape.stroke(Theme.Palette.separator))
+                .shadow(color: .black.opacity(0.08), radius: 6, y: 2)
+        }
+    }
+}
+
+extension View {
+    func chromeGlass(in shape: some Shape) -> some View { modifier(ChromeGlass(shape: shape)) }
+}
+
+/// Range pills (7D, 1M…): an accent capsule slides to the chosen one.
+struct PillPicker<Option: Hashable>: View {
+    @Binding var selection: Option
+    let options: [Option]
+    let title: (Option) -> LocalizedStringKey
+    @Namespace private var namespace
+
+    var body: some View {
+        HStack(spacing: 0) {
+            ForEach(options, id: \.self) { option in
+                let selected = option == selection
+                Button {
+                    withAnimation(.snappy(duration: 0.3)) { selection = option }
+                } label: {
+                    Text(title(option))
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(selected ? Color.white : Theme.Palette.textSecondary)
+                        .frame(maxWidth: .infinity, minHeight: 34)
+                        .background {
+                            if selected {
+                                Capsule()
+                                    .fill(Theme.Palette.accent)
+                                    .matchedGeometryEffect(id: "pill", in: namespace)
+                            }
+                        }
+                        .contentShape(.capsule)
+                }
+                .buttonStyle(.plain)
+                .accessibilityAddTraits(selected ? .isSelected : [])
+            }
+        }
+        .padding(3)
+        .background(Theme.Palette.surfaceRaised, in: .capsule)
+        .sensoryFeedback(.selection, trigger: selection)
+    }
+}

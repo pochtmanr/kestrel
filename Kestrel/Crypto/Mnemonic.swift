@@ -4,7 +4,7 @@ import Foundation
 
 /// BIP-39 recovery phrases (English wordlist).
 enum Mnemonic {
-    enum Failure: Error { case randomnessUnavailable, wordlistMissing }
+    enum Failure: Error { case randomnessUnavailable, wordlistMissing, derivation }
 
     static let wordlist: [String] = {
         guard let url = Bundle.main.url(forResource: "bip39-english", withExtension: "txt"),
@@ -54,12 +54,13 @@ enum Mnemonic {
     }
 
     /// PBKDF2-HMAC-SHA512, 2048 rounds, salt "mnemonic" (no passphrase).
-    static func seed(from phrase: String) -> [UInt8] {
+    /// Throws rather than hand back a zeroed seed, which would be a wallet anyone can derive.
+    static func seed(from phrase: String) throws -> [UInt8] {
         let password = Array(normalize(phrase).decomposedStringWithCompatibilityMapping.utf8)
         let salt = Array("mnemonic".utf8)
         var seed = [UInt8](repeating: 0, count: 64)
-        password.withUnsafeBufferPointer { pw in
-            _ = CCKeyDerivationPBKDF(
+        let status = password.withUnsafeBufferPointer { pw in
+            CCKeyDerivationPBKDF(
                 CCPBKDFAlgorithm(kCCPBKDF2),
                 UnsafeRawPointer(pw.baseAddress!).assumingMemoryBound(to: CChar.self), pw.count,
                 salt, salt.count,
@@ -67,6 +68,7 @@ enum Mnemonic {
                 &seed, seed.count
             )
         }
+        guard status == kCCSuccess, !password.isEmpty else { throw Failure.derivation }
         return seed
     }
 

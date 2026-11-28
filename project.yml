@@ -72,9 +72,6 @@ targets:
         NSCameraUsageDescription: Kastrel uses the camera to scan a wallet address QR code.
         UIBackgroundModes: [fetch]
         BGTaskSchedulerPermittedIdentifiers: [com.simnetiq.kestrel.price-alerts]
-        CFBundleURLTypes:
-          - CFBundleURLName: com.simnetiq.kestrel
-            CFBundleURLSchemes: [kestrel]
 
   KestrelWidget:
     type: app-extension

@@ -83,13 +83,41 @@ struct SecondaryButtonStyle: ButtonStyle {
     }
 }
 
-/// Numbered grid of recovery words.
+/// Numbered grid of recovery words. Hidden while the screen is recorded,
+/// mirrored or shared, and a screenshot of it gets a warning: an image of the
+/// phrase lands in Photos, and from there in backups and other apps.
 struct RecoveryWordsGrid: View {
     let phrase: String
 
+    @Environment(\.isSceneCaptured) private var isCaptured
+    @State private var screenshotTaken = false
+
     var body: some View {
+        Group {
+            if isCaptured {
+                Label("Hidden while the screen is being recorded or shared.", systemImage: "eye.slash.fill")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, minHeight: 120)
+                    .padding()
+                    .surface(cornerRadius: Theme.Radius.s)
+            } else {
+                grid
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.userDidTakeScreenshotNotification)) { _ in
+            screenshotTaken = true
+        }
+        .alert("Delete that screenshot", isPresented: $screenshotTaken) {
+            Button("OK") {}
+        } message: {
+            Text("A picture of your recovery phrase is now in Photos, where other apps and backups can reach it. Delete it there and from Recently Deleted, and keep the words on paper.")
+        }
+    }
+
+    private var grid: some View {
         let words = phrase.split(separator: " ").map(String.init)
-        LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
+        return LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
             ForEach(Array(words.enumerated()), id: \.offset) { index, word in
                 HStack(spacing: 8) {
                     Text("\(index + 1)")
@@ -383,5 +411,46 @@ struct PillPicker<Option: Hashable>: View {
         .padding(3)
         .background(Theme.Palette.surfaceRaised, in: .capsule)
         .sensoryFeedback(.selection, trigger: selection)
+    }
+}
+
+// MARK: Tab container backdrop
+
+/// UIKit paints the tab container and each tab's hosting view `systemBackground`
+/// (white in light mode) under our own screen background. It never shows on a
+/// still screen, but it does while tabs slide past each other. This repaints
+/// those containers in the theme's background.
+private struct TabContainerBackdrop: UIViewControllerRepresentable {
+    func makeUIViewController(context: Context) -> Controller { Controller() }
+    func updateUIViewController(_ controller: Controller, context: Context) {}
+
+    final class Controller: UIViewController {
+        override func didMove(toParent parent: UIViewController?) {
+            super.didMove(toParent: parent)
+            paintContainers()
+        }
+
+        // The chain up to the tab controller may not be complete in `didMove`.
+        override func viewWillAppear(_ animated: Bool) {
+            super.viewWillAppear(animated)
+            paintContainers()
+        }
+
+        private func paintContainers() {
+            let background = UIColor(Theme.Palette.background)
+            var ancestor = parent
+            while let container = ancestor {
+                container.view.backgroundColor = background
+                if container is UITabBarController { break }
+                ancestor = container.parent
+            }
+        }
+    }
+}
+
+extension View {
+    /// For the root of a tab: see `TabContainerBackdrop`.
+    func tabContainerBackdrop() -> some View {
+        background(TabContainerBackdrop())
     }
 }

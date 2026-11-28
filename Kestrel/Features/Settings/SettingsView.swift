@@ -135,9 +135,10 @@ struct SettingsView: View {
 private struct SecuritySettingsView: View {
     @Environment(AppModel.self) private var app
     @State private var biometricsOn = Biometrics.isEnabled
-    @State private var showPhrase = false
-    @State private var askPIN = false
-    @State private var confirmResetPIN = false
+    @State private var pinPurpose: PinPurpose?
+    @State private var revealed: Phrase?
+    /// The phrase the current PIN opened, while a new PIN is being created.
+    @State private var newPIN: Phrase?
 
     var body: some View {
         ScrollView {
@@ -160,7 +161,7 @@ private struct SecuritySettingsView: View {
                         .onChange(of: biometricsOn) { _, on in toggleBiometrics(on) }
                         SettingsDivider()
                     }
-                    Button { confirmResetPIN = true } label: {
+                    Button { pinPurpose = .changePIN } label: {
                         SettingsRow(title: "Change PIN", symbol: "number", color: Theme.Palette.accent)
                     }
                     SettingsDivider()
@@ -177,35 +178,73 @@ private struct SecuritySettingsView: View {
         .background(Theme.Palette.background)
         .navigationTitle("Security")
         .navigationBarTitleDisplayMode(.inline)
-        .sheet(isPresented: $showPhrase) { RecoveryPhraseSheet() }
-        .sheet(isPresented: $askPIN) {
-            ConfirmWithPINSheet(title: "Show recovery phrase") { showPhrase = true }
+        .sheet(item: $revealed) { RecoveryPhraseSheet(phrase: $0.words) }
+        .sheet(item: $pinPurpose, onDismiss: { biometricsOn = Biometrics.isEnabled }) { purpose in
+            ConfirmWithPINSheet(title: purpose.title) { phrase in pinEntered(phrase, for: purpose) }
         }
-        .confirmationDialog("Change your PIN?", isPresented: $confirmResetPIN, titleVisibility: .visible) {
-            Button("Set a new PIN") { app.resetPIN() }
-        } message: {
-            Text("You'll create a new 6-digit PIN now.")
+        .fullScreenCover(item: $newPIN) { current in
+            PinSetupView(changing: current.words) { newPIN = nil }
+                .background(Theme.Palette.background.ignoresSafeArea())
+        }
+    }
+
+    /// Why the PIN is being asked for. Each of these needs the phrase the PIN decrypts.
+    private enum PinPurpose: Identifiable {
+        case reveal, changePIN, enableBiometrics
+        var id: Self { self }
+
+        var title: LocalizedStringKey {
+            switch self {
+            case .reveal: "Show recovery phrase"
+            // The current PIN, always: Face ID alone must not be able to replace it.
+            case .changePIN: "Enter your current PIN"
+            case .enableBiometrics: "Enable \(Biometrics.label)"
+            }
+        }
+    }
+
+    private func pinEntered(_ phrase: String, for purpose: PinPurpose) {
+        switch purpose {
+        case .reveal:
+            revealed = Phrase(words: phrase)
+        case .changePIN:
+            newPIN = Phrase(words: phrase)
+        case .enableBiometrics:
+            Task {
+                if await Biometrics.authenticate(reason: tr("Enable \(Biometrics.label) for \(Brand.name)")) {
+                    try? WalletVault.enableBiometrics(phrase: phrase)
+                }
+                biometricsOn = Biometrics.isEnabled
+            }
         }
     }
 
     private func revealPhrase() {
-        guard Biometrics.isEnabled else { askPIN = true; return }
+        guard Biometrics.isEnabled else { pinPurpose = .reveal; return }
         Task {
-            if await Biometrics.authenticate(reason: tr("Show your recovery phrase")) { showPhrase = true } else { askPIN = true }
+            if let phrase = await Biometrics.unlockPhrase(reason: tr("Show your recovery phrase")) {
+                revealed = Phrase(words: phrase)
+            } else {
+                pinPurpose = .reveal
+            }
         }
     }
 
     private func toggleBiometrics(_ on: Bool) {
         guard on != Biometrics.isEnabled else { return }
-        guard on else { Biometrics.isEnabled = false; return }
-        Task {
-            if await Biometrics.authenticate(reason: tr("Enable \(Biometrics.label) for \(Brand.name)")) {
-                Biometrics.isEnabled = true
-            } else {
-                biometricsOn = false
-            }
+        if on {
+            // The copy Face ID releases is made from the phrase, which only the PIN can open.
+            pinPurpose = .enableBiometrics
+        } else {
+            WalletVault.disableBiometrics()
         }
     }
+}
+
+/// A decrypted recovery phrase on its way to a sheet.
+private struct Phrase: Identifiable {
+    let id = UUID()
+    let words: String
 }
 
 // MARK: - About
@@ -342,7 +381,8 @@ struct SettingsRow: View {
 
 private struct RecoveryPhraseSheet: View {
     @Environment(\.dismiss) private var dismiss
-    @State private var phrase = WalletVault.mnemonic() ?? ""
+    @Environment(\.scenePhase) private var scenePhase
+    @State var phrase: String
 
     var body: some View {
         // iPad: a centred card, not a page-wide sheet.
@@ -374,5 +414,9 @@ private struct RecoveryPhraseSheet: View {
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
         }
         .onDisappear { phrase = "" }
+        // The app locks in the background: the phrase doesn't wait behind the lock screen.
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .background { dismiss() }
+        }
     }
 }

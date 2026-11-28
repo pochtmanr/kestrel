@@ -118,11 +118,11 @@ final class AppModel {
     #endif
 
     func reload() {
-        address = (try? WalletVault.keys())?.address
+        address = WalletVault.address
         activity.configure(address: address)
         if address == nil {
             stage = .setup
-        } else if !PinStore.isSet {
+        } else if !WalletVault.hasPIN {
             stage = .createPIN
         } else if stage != .unlocked {
             stage = .locked
@@ -148,24 +148,29 @@ final class AppModel {
         stage = .locked
     }
 
-    func resetPIN() {
-        PinStore.erase()
-        Biometrics.isEnabled = false
-        stage = .createPIN
-    }
-
     func eraseWallet() {
         activity.clear()
         SharedWallet.clear()
         WidgetCenter.shared.reloadTimelines(ofKind: SharedWallet.widgetKind)
+        // The phrase, its PIN and Face ID copies, the attempt counter, the support id.
         WalletVault.erase()
-        PinStore.erase()
-        Biometrics.isEnabled = false
+        Self.forgetWalletData()
         usdtUnits = 0
         trxSun = 0
         history = []
         stage = .setup
         reload()
+    }
+
+    /// What the wallet's owner left on the device outside the Keychain: notes
+    /// on transfers, the address nickname, the fee parameters. App-wide choices
+    /// (language, theme, sort order) stay.
+    private static func forgetWalletData() {
+        let defaults = UserDefaults.standard
+        for key in defaults.dictionaryRepresentation().keys where key.hasPrefix("transfer.note.") {
+            defaults.removeObject(forKey: key)
+        }
+        defaults.removeObject(forKey: "receive.addressName")
     }
 
     func refresh() async {

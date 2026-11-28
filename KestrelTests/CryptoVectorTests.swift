@@ -30,7 +30,7 @@ final class CryptoVectorTests: XCTestCase {
     func testWalletsMatchPreviousApp() throws {
         for w in try load().wallets {
             XCTAssertTrue(Mnemonic.isValid(w.mnemonic))
-            XCTAssertEqual(Hex.encode(Mnemonic.seed(from: w.mnemonic)), w.seed)
+            XCTAssertEqual(Hex.encode(try Mnemonic.seed(from: w.mnemonic)), w.seed)
             let keys = try TronKeys(mnemonic: w.mnemonic)
             XCTAssertEqual(Hex.encode(keys.privateKey), w.privateKey)
             XCTAssertEqual(keys.address, w.address)

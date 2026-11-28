@@ -267,6 +267,8 @@ struct RestoreWalletView: View {
                     .font(.body.monospaced())
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
+                    // Plain Latin keys: no emoji or handwriting input for a phrase.
+                    .keyboardType(.asciiCapable)
                     .focused($focused)
             } header: {
                 Text("Recovery phrase")

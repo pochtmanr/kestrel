@@ -1878,22 +1878,6 @@
         }
       }
     },
-    "Change your PIN?" : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Сменить PIN-код?"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "要修改 PIN 码吗？"
-          }
-        }
-      }
-    },
     "Changes %@ only. System dialogs, such as Face ID, follow your device's language." : {
       "localizations" : {
         "ru" : {
@@ -6358,22 +6342,6 @@
         }
       }
     },
-    "Set a new PIN" : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Задать новый PIN-код"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "设置新 PIN 码"
-          }
-        }
-      }
-    },
     "Set amount" : {
       "localizations" : {
         "ru" : {
@@ -7598,22 +7566,6 @@
         }
       }
     },
-    "Too many attempts. Try again in 30 seconds." : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Слишком много попыток. Повторите через 30 секунд."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "尝试次数过多，请 30 秒后再试。"
-          }
-        }
-      }
-    },
     "Top counterparties" : {
       "localizations" : {
         "ru" : {
@@ -8745,22 +8697,6 @@
         }
       }
     },
-    "You'll create a new 6-digit PIN now." : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Сейчас вы зададите новый PIN-код из 6 цифр."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "接下来你将创建一个新的 6 位 PIN 码。"
-          }
-        }
-      }
-    },
     "You'll get one notification when %@ falls to %@ or lower." : {
       "localizations" : {
         "ru" : {
@@ -8985,6 +8921,230 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "零"
+          }
+        }
+      }
+    },
+    "The network returned a transfer that doesn't match the one you confirmed. Nothing was signed or sent." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сеть вернула перевод, который не совпадает с тем, что вы подтвердили. Ничего не подписано и не отправлено."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "网络返回的转账与你确认的不一致。未签名，也未发送。"
+          }
+        }
+      }
+    },
+    "Don't copy this address" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не копируйте этот адрес"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不要复制这个地址"
+          }
+        }
+      }
+    },
+    "Scammers send tiny transfers from addresses that look like ones you use, hoping you'll copy the wrong one. Take addresses from the person you're paying, not from here." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Мошенники отправляют крошечные переводы с адресов, похожих на те, которыми вы пользуетесь, в расчёте на то, что вы скопируете не тот адрес. Берите адрес у того, кому платите, а не отсюда."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "骗子会从与你常用地址相似的地址发来极小额转账，希望你复制到错误的地址。请向收款人索取地址，不要从这里复制。"
+          }
+        }
+      }
+    },
+    "New address" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Новый адрес"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新地址"
+          }
+        }
+      }
+    },
+    "There's no earlier transfer to this address in your history. Check every character." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "В вашей истории нет переводов на этот адрес. Проверьте каждый символ."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你的记录中没有向该地址的转账。请逐个字符核对。"
+          }
+        }
+      }
+    },
+    "This address looks like another one" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Этот адрес похож на другой"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "这个地址与另一个地址相似"
+          }
+        }
+      }
+    },
+    "It isn't %@, an address from your history, but it starts or ends the same way. Scammers make such lookalikes. Compare the full address with the one you were given." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Это не %@ из вашей истории, но адрес начинается или заканчивается так же. Мошенники создают такие похожие адреса. Сверьте адрес целиком с тем, который вам дали."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "它不是你记录中的 %@，但开头或结尾相同。骗子会生成这类相似地址。请将完整地址与对方提供的地址逐一比对。"
+          }
+        }
+      }
+    },
+    "Couldn't save the PIN. Try again." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось сохранить PIN-код. Попробуйте ещё раз."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法保存 PIN 码，请重试。"
+          }
+        }
+      }
+    },
+    "Too many attempts. Try again in %@." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Слишком много попыток. Повторите через %@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "尝试次数过多，请在 %@ 后再试。"
+          }
+        }
+      }
+    },
+    "Enter your current PIN" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Введите текущий PIN-код"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "输入当前 PIN 码"
+          }
+        }
+      }
+    },
+    "Enable %@" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Включить %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "启用%@"
+          }
+        }
+      }
+    },
+    "Hidden while the screen is being recorded or shared." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Скрыто, пока экран записывается или транслируется."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "屏幕正在录制或共享时已隐藏。"
+          }
+        }
+      }
+    },
+    "Delete that screenshot" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Удалите этот снимок экрана"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请删除这张截图"
+          }
+        }
+      }
+    },
+    "A picture of your recovery phrase is now in Photos, where other apps and backups can reach it. Delete it there and from Recently Deleted, and keep the words on paper." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Снимок вашей фразы восстановления теперь в «Фото», где до него могут добраться другие приложения и резервные копии. Удалите его там и из альбома «Недавно удалённые», а слова храните на бумаге."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你的助记词截图现已保存在“照片”中，其他 App 和备份都可能读取到它。请在“照片”和“最近删除”中将其删除，并把助记词抄写在纸上保存。"
           }
         }
       }

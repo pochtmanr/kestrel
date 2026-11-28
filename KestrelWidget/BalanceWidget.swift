@@ -108,7 +108,7 @@ struct BalanceWidgetView: View {
             case .systemMedium: medium(snapshot)
             case .systemLarge: large(snapshot)
             case .accessoryRectangular: rectangular(snapshot)
-            case .accessoryInline: Text("\(Brand.name) \(amount(snapshot.usdtUnits)) USDT")
+            case .accessoryInline: Text("\(Brand.name) \(amount(snapshot.usdtUnits)) USDT").privacySensitive()
             case .accessoryCircular: circular(snapshot)
             default: small(snapshot)
             }

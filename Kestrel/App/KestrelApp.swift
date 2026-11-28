@@ -2,6 +2,7 @@ import SwiftUI
 
 @main
 struct KestrelApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) private var delegate
     @State private var app: AppModel = {
         let model = AppModel()
         #if DEBUG
@@ -19,6 +20,7 @@ struct KestrelApp: App {
     init() {
         // Lets a price alert show as a banner while the app is open. Never prompts.
         AlertNotifier.install()
+        PrivacyCurtain.shared.install()
     }
 
     var body: some Scene {
@@ -92,15 +94,6 @@ struct RootView: View {
         }
         .animation(.default, value: app.stage)
         .overlay {
-            // Hide balances and recovery phrases in the app switcher and while backgrounded.
-            if scenePhase == .background || (scenePhase == .inactive && app.stage != .locked) {
-                ZStack {
-                    Rectangle().fill(.ultraThinMaterial).ignoresSafeArea()
-                    Image("Logo").resizable().frame(width: 80, height: 80).clipShape(.rect(cornerRadius: Theme.Radius.card))
-                }
-            }
-        }
-        .overlay {
             if splash {
                 SplashView()
                     .transition(.opacity.animation(.easeInOut(duration: 0.45)))
@@ -112,6 +105,10 @@ struct RootView: View {
         }
         .onChange(of: scenePhase) { _, phase in
             if phase == .background { app.lock() }
+        }
+        // Balances, phrases and sheets are hidden in the app switcher by `PrivacyCurtain`.
+        .onAppear {
+            PrivacyCurtain.shared.coversWhenInactive = { [app] in app.stage != .locked }
         }
     }
 }
@@ -160,16 +157,18 @@ struct MainTabView: View {
         let wallet = AppModel.Tab.wallet, activity = AppModel.Tab.activity
         if #available(iOS 18, *) {
             TabView(selection: $app.selectedTab) {
-                Tab(wallet.title, systemImage: wallet.icon, value: wallet) { WalletView(zoom: zoom) }
-                Tab(activity.title, systemImage: activity.icon, value: activity) { ActivityView() }
+                Tab(wallet.title, systemImage: wallet.icon, value: wallet) { WalletView(zoom: zoom).tabContainerBackdrop() }
+                Tab(activity.title, systemImage: activity.icon, value: activity) { ActivityView().tabContainerBackdrop() }
             }
             .modifier(MinimizeTabBarOnScroll())
         } else {
             TabView(selection: $app.selectedTab) {
                 WalletView(zoom: zoom)
+                    .tabContainerBackdrop()
                     .tabItem { Label(wallet.title, systemImage: wallet.icon) }
                     .tag(wallet)
                 ActivityView()
+                    .tabContainerBackdrop()
                     .tabItem { Label(activity.title, systemImage: activity.icon) }
                     .tag(activity)
             }

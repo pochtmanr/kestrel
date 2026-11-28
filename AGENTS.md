@@ -26,7 +26,9 @@ public candles (coin names only, never the address). The Supabase backend (`Back
 | TronGrid reads (balance, history) | `Kestrel/Shared/TronClient.swift` (shared with the widget) |
 | Building, signing and broadcasting a USDT transfer | `Kestrel/Services/TronClient+Send.swift` |
 | Keys: mnemonic, derivation, signing, hashing | `Kestrel/Crypto/` |
-| Keychain (mnemonic, PIN hash, Face ID flag) | `Kestrel/Services/SecureStore.swift` |
+| Keychain (phrase encrypted under the PIN, its Face ID copy, wrong-PIN count) | `Kestrel/Services/SecureStore.swift`; model in `docs/SECURITY.md` |
+| Checking a node-built transfer before signing; address-poisoning checks | `Kestrel/Crypto/TransferVerifier.swift`, `Kestrel/Features/Send/AddressSafety.swift` |
+| App-switcher privacy cover, keyboard-extension block | `Kestrel/App/PrivacyCurtain.swift` |
 | Backend (Supabase edge functions, PostgREST tables) | `Kestrel/Services/Backend.swift` |
 | Support chat and legal URLs | `SupportConfig` in `Kestrel/Features/Support/SupportView.swift` |
 | App name and app group at runtime | `Kestrel/Shared/Brand.swift` |
@@ -71,7 +73,8 @@ offline and can hit HTTP 429 rate limits; if it does, re-run it.
 2. **`Kestrel/Shared/` is compiled into the widget too.** Keep it free of app-only APIs (`UIApplication`,
    app-only types).
 3. **Crypto is safety-critical.** Any change under `Kestrel/Crypto/`, `SecureStore.swift` or
-   `TronClient+Send.swift` must keep `KestrelTests/CryptoVectorTests.swift` passing. Add vectors for new
+   `TronClient+Send.swift` must keep `KestrelTests/CryptoVectorTests.swift`, `TransferVerifierTests.swift` and
+   `WalletVaultTests.swift` passing. Add vectors for new
    paths. Never log or persist the mnemonic or private keys outside the Keychain.
 4. **Use theme tokens**, not literals, for colours, radii and amount fonts.
 5. **User-facing text must be localisable.** Use `Text("literal")`, `LocalizedStringKey` parameters, or

@@ -15,7 +15,8 @@ enum USDT {
               let f = UInt64(fraction.padding(toLength: decimals, withPad: "0", startingAt: 0))
         else { return nil }
         let (scaled, overflow) = w.multipliedReportingOverflow(by: 1_000_000)
-        return overflow ? nil : scaled + f
+        let (total, carried) = scaled.addingReportingOverflow(f)
+        return overflow || carried ? nil : total
     }
 
     /// 1_234_567_890 → "1,234.56" (truncated, never rounded up).
@@ -157,15 +158,19 @@ struct TronClient: Sendable {
         return token
     }
 
-    /// Rows of `v1/accounts/{a}/transactions/trc20`. Malformed rows are skipped
-    /// rather than failing the page.
+    /// Rows of `v1/accounts/{a}/transactions/trc20`. Malformed and zero-value
+    /// rows are skipped rather than failing the page.
     static func parseTransfers(_ body: [String: Any]) -> (transfers: [TokenTransfer], next: String?) {
         let rows = body["data"] as? [[String: Any]] ?? []
         let transfers: [TokenTransfer] = rows.compactMap { row in
             guard let id = row["transaction_id"] as? String,
                   let ts = (row["block_timestamp"] as? NSNumber)?.doubleValue,
                   let from = row["from"] as? String, let to = row["to"] as? String,
-                  let value = row["value"] as? String, let units = UInt64(value)
+                  let value = row["value"] as? String, let units = UInt64(value),
+                  // A zero-value transfer moves nothing. Anyone can post one "from"
+                  // any address, and scammers do, to plant a lookalike address in
+                  // the history (address poisoning). It never belongs in a list.
+                  units > 0
             else { return nil }
             return TokenTransfer(id: id, date: Date(timeIntervalSince1970: ts / 1000), from: from, to: to, units: units)
         }
@@ -212,13 +217,32 @@ struct TronClient: Sendable {
     private func send(_ request: URLRequest) async throws -> [String: Any] {
         var request = request
         request.timeoutInterval = 20
-        request.setValue(Self.apiKey, forHTTPHeaderField: "TRON-PRO-API-KEY")
-        let (data, response) = try await session.data(for: request)
-        let status = (response as? HTTPURLResponse)?.statusCode ?? 0
+        request.setValue(Self.apiKey, forHTTPHeaderField: Self.apiKeyHeader)
+        var (data, status) = try await perform(request)
+        // The key ships in the app, so its quota can be used up by anyone, and
+        // TronGrid can suspend it. Neither may stop the wallet: a request the
+        // key was refused for goes again without it, on the keyless per-IP
+        // allowance. A refused request was never processed, so this can't send twice.
+        if Self.keyWasRefused(status) {
+            request.setValue(nil, forHTTPHeaderField: Self.apiKeyHeader)
+            (data, status) = try await perform(request)
+        }
         if status == 429 { throw Failure.rateLimited }
         guard (200 ..< 300).contains(status) else { throw Failure.http(status) }
         guard let object = try JSONSerialization.jsonObject(with: data) as? [String: Any] else { throw Failure.badResponse }
         return object
+    }
+
+    private static let apiKeyHeader = "TRON-PRO-API-KEY"
+
+    /// 401 / 403: the key is unknown, suspended or not allowed this call. 429: its quota is spent.
+    static func keyWasRefused(_ status: Int) -> Bool {
+        status == 401 || status == 403 || status == 429
+    }
+
+    private func perform(_ request: URLRequest) async throws -> (Data, Int) {
+        let (data, response) = try await session.data(for: request)
+        return (data, (response as? HTTPURLResponse)?.statusCode ?? 0)
     }
 
     /// TronGrid returns error messages hex-encoded.

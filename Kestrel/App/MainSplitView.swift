@@ -17,7 +17,7 @@ struct SidebarTabShell: View {
         TabView(selection: $app.selectedTab) {
             ForEach(AppModel.Tab.allCases, id: \.self) { tab in
                 Tab(tab.title, systemImage: tab.icon, value: tab) {
-                    SectionDetail(tab: tab, zoom: zoom)
+                    SectionDetail(tab: tab, zoom: zoom).tabContainerBackdrop()
                 }
             }
         }

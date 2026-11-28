@@ -10,9 +10,10 @@ enum SupportConfig {
     /// Public website-inbox token (it's embedded in every chat widget page).
     static let chatwootWebsiteToken = ""
     private static let site = "https://kastrel.xyz"
-    static let terms = URL(string: "\(site)/terms")
-    static let privacy = URL(string: "\(site)/privacy")
-    static let support = URL(string: "\(site)/support")
+    // Trailing slashes: the site serves every page at a directory URL.
+    static let terms = URL(string: "\(site)/terms/")
+    static let privacy = URL(string: "\(site)/privacy/")
+    static let support = URL(string: "\(site)/support/")
 
     static var isChatConfigured: Bool { chatwootBaseURL != nil && !chatwootWebsiteToken.isEmpty }
 }
@@ -38,9 +39,23 @@ private struct ChatwootWebView: UIViewRepresentable {
 
     func makeCoordinator() -> Coordinator { Coordinator(onClose: onClose) }
 
-    final class Coordinator: NSObject, WKScriptMessageHandler {
+    final class Coordinator: NSObject, WKScriptMessageHandler, WKNavigationDelegate {
         let onClose: () -> Void
         init(onClose: @escaping () -> Void) { self.onClose = onClose }
+
+        /// Only the chat itself loads in here. This view has no address bar, so
+        /// a link from a conversation opening inside it could pass for the app
+        /// (a page asking for the recovery phrase, say): links go to Safari.
+        func webView(
+            _ webView: WKWebView, decidePolicyFor action: WKNavigationAction
+        ) async -> WKNavigationActionPolicy {
+            guard let url = action.request.url else { return .cancel }
+            if ChatwootWebView.isChatURL(url) { return .allow }
+            if action.navigationType == .linkActivated, ["https", "mailto"].contains(url.scheme?.lowercased() ?? "") {
+                await UIApplication.shared.open(url)
+            }
+            return .cancel
+        }
 
         func userContentController(_ controller: WKUserContentController, didReceive message: WKScriptMessage) {
             if message.name == "chatwootClosed" { onClose() }
@@ -51,6 +66,7 @@ private struct ChatwootWebView: UIViewRepresentable {
         let configuration = WKWebViewConfiguration()
         configuration.userContentController.add(context.coordinator, name: "chatwootClosed")
         let webView = WKWebView(frame: .zero, configuration: configuration)
+        webView.navigationDelegate = context.coordinator
         webView.isOpaque = false
         webView.backgroundColor = .clear
         webView.loadHTMLString(html, baseURL: SupportConfig.chatwootBaseURL)
@@ -58,6 +74,14 @@ private struct ChatwootWebView: UIViewRepresentable {
     }
 
     func updateUIView(_ webView: WKWebView, context: Context) {}
+
+    /// The widget's own page and frames: the Chatwoot origin, and the inline
+    /// documents (`about:blank`, `about:srcdoc`) its SDK builds its frame from.
+    static func isChatURL(_ url: URL, base: URL? = SupportConfig.chatwootBaseURL) -> Bool {
+        if url.scheme == "about" { return true }
+        guard let base, url.scheme == "https", base.scheme == "https" else { return false }
+        return url.host?.lowercased() == base.host?.lowercased() && url.port == base.port
+    }
 
     static func dismantleUIView(_ webView: WKWebView, coordinator: Coordinator) {
         webView.configuration.userContentController.removeScriptMessageHandler(forName: "chatwootClosed")

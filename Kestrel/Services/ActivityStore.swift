@@ -155,7 +155,13 @@ final class ActivityStore {
         guard let directory, let url = cacheURL(address: snapshot.address, in: directory) else { return }
         try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         guard let data = try? JSONEncoder().encode(snapshot) else { return }
-        try? data.write(to: url, options: .atomic)
+        // Public chain data, but it ties this device to the address: unreadable
+        // while the device is locked, and kept out of iCloud and computer backups.
+        try? data.write(to: url, options: [.atomic, .completeFileProtectionUnlessOpen])
+        var values = URLResourceValues()
+        values.isExcludedFromBackup = true
+        var file = url
+        try? file.setResourceValues(values)
     }
 
     /// Union by id (incoming rows win), newest first. Ties on the same block
@@ -163,7 +169,8 @@ final class ActivityStore {
     nonisolated static func merge(_ new: [TokenTransfer], into existing: [TokenTransfer]) -> [TokenTransfer] {
         var byID = Dictionary(existing.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         for transfer in new { byID[transfer.id] = transfer }
-        return byID.values.sorted { $0.date != $1.date ? $0.date > $1.date : $0.id > $1.id }
+        // Zero-value rows cached before they were filtered out (see `parseTransfers`).
+        return byID.values.filter { $0.units > 0 }.sorted { $0.date != $1.date ? $0.date > $1.date : $0.id > $1.id }
     }
 
     // MARK: Network

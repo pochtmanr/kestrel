@@ -815,6 +815,8 @@ struct TransferDetailView: View {
     private var tint: Color { outgoing ? Theme.Palette.outgoing : Theme.Palette.positive }
     private var processing: Bool { pending && !confirmed }
     private var counterparty: String { outgoing ? transfer.to : transfer.from }
+    /// Too small to trust the other side's address (see `AddressSafety`).
+    private var suspicious: Bool { !pending && AddressSafety.isSuspicious(transfer) }
     private var noteKey: String { "transfer.note.\(transfer.id)" }
     private var tronscan: URL { URL(string: "https://tronscan.org/#/transaction/\(transfer.id)")! }
 
@@ -833,6 +835,7 @@ struct TransferDetailView: View {
             ScrollView {
                 VStack(spacing: 14) {
                     header
+                    if suspicious { poisoningWarning }
                     addressPanel
                     group {
                         actionRow(note.isEmpty ? tr("Add note") : note, icon: "pencil", secondary: !note.isEmpty) {
@@ -841,7 +844,7 @@ struct TransferDetailView: View {
                         }
                     }
                     group {
-                        if outgoing {
+                        if outgoing, !suspicious {
                             actionRow(tr("Repeat payment"), icon: "arrow.clockwise") { onRepeat(transfer.to) }
                             Divider().padding(.leading, 56)
                         }
@@ -950,7 +953,12 @@ struct TransferDetailView: View {
 
     private var addressPanel: some View {
         group {
-            copyRow(outgoing ? tr("Receive address") : tr("Sender address"), counterparty)
+            if suspicious {
+                // Shown, never copyable: this is the address a scammer wants pasted.
+                infoRow(outgoing ? tr("Receive address") : tr("Sender address"), counterparty.shortAddress)
+            } else {
+                copyRow(outgoing ? tr("Receive address") : tr("Sender address"), counterparty)
+            }
             if outgoing, let fee = app.activity.fees[transfer.id] {
                 Divider().padding(.leading, 16)
                 feeRow(fee)
@@ -992,6 +1000,24 @@ struct TransferDetailView: View {
                 }
             }
         }
+    }
+
+    private var poisoningWarning: some View {
+        Label {
+            VStack(alignment: .leading, spacing: 3) {
+                Text("Don't copy this address").font(.subheadline.weight(.semibold))
+                Text("Scammers send tiny transfers from addresses that look like ones you use, hoping you'll copy the wrong one. Take addresses from the person you're paying, not from here.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        } icon: {
+            Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(Theme.Palette.warning)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(14)
+        .background(Theme.Palette.warning.opacity(0.12), in: .rect(cornerRadius: Theme.Radius.l, style: .continuous))
+        .accessibilityElement(children: .combine)
     }
 
     // MARK: Pieces

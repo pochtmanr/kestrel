@@ -29,6 +29,12 @@ struct ReviewTransferSheet: View {
         app.prices[.trx].map { Double(burnSun) / 1_000_000 * $0.usd }
     }
 
+    /// What the wallet's history says about this address (see `AddressSafety`).
+    private var recipientHistory: RecipientHistory {
+        let transfers = app.activity.transfers.isEmpty ? app.history : app.activity.transfers
+        return AddressSafety.assess(recipient: recipient, ownAddress: app.address ?? "", transfers: transfers)
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -89,6 +95,8 @@ struct ReviewTransferSheet: View {
                     }
                     .surface(cornerRadius: Theme.Radius.card)
 
+                    recipientCaution
+
                     Label {
                         VStack(alignment: .leading, spacing: 3) {
                             Text("Transfers can't be undone").font(.subheadline.weight(.semibold))
@@ -139,6 +147,46 @@ struct ReviewTransferSheet: View {
             fees.update(from: from, to: recipient, units: units, balance: app.usdtUnits, immediately: true)
         }
         .interactiveDismissDisabled(authorizing)
+    }
+
+    /// A lookalike of an address used before is the mark of address poisoning:
+    /// said loudly. A new address is only worth a second look.
+    @ViewBuilder
+    private var recipientCaution: some View {
+        switch recipientHistory {
+        case .known:
+            EmptyView()
+        case .firstTime:
+            caution(
+                title: "New address",
+                text: tr("There's no earlier transfer to this address in your history. Check every character."),
+                tint: Theme.Palette.warning
+            )
+        case .lookalike(let other):
+            caution(
+                title: "This address looks like another one",
+                text: tr("It isn't \(other.shortAddress), an address from your history, but it starts or ends the same way. Scammers make such lookalikes. Compare the full address with the one you were given."),
+                tint: Theme.Palette.danger
+            )
+        }
+    }
+
+    private func caution(title: LocalizedStringKey, text: String, tint: Color) -> some View {
+        Label {
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title).font(.subheadline.weight(.semibold))
+                Text(text)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        } icon: {
+            Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(tint)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(14)
+        .background(tint.opacity(0.12), in: .rect(cornerRadius: Theme.Radius.l, style: .continuous))
+        .accessibilityElement(children: .combine)
     }
 
     /// Short address to scan at a glance, the full one to check character by character.

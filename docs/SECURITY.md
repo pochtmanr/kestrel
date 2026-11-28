@@ -4,12 +4,18 @@ Scope: the iOS code in this repo. References point to files. Read the code for t
 
 ## 1. Custody model
 
-The wallet is self-custody. A 12-word BIP-39 phrase is generated on the device and stored as UTF-8 in the
-iOS Keychain. It's the only secret that controls funds. The private key is re-derived from the phrase
-whenever it's needed (address lookup, signing) and is never stored. TronGrid builds transactions, the
-device signs them, and TronGrid broadcasts them. The PIN and Face ID gate the UI. They don't encrypt or
-wrap the phrase. No server ever receives the phrase or the private key. The Supabase backend (`Services/Backend.swift`)
-exists only for optional features, and the wallet doesn't depend on it.
+The wallet is self-custody. A 12-word BIP-39 phrase is generated on the device. It's the only secret that
+controls funds, and it is kept in the iOS Keychain in two forms, neither of which opening the app can read:
+
+- **Encrypted under the app PIN** (always). The right PIN is the one that decrypts it; no PIN hash is stored.
+- **Behind the current Face ID / Touch ID enrolment** (when biometrics are on), as a Keychain item with
+  `.biometryCurrentSet` access control. iOS releases it, and drops it if a face or finger is added.
+
+The private key is re-derived from the phrase when a transfer is signed and is never stored. The address is
+stored on its own, so launching the app and reading balances need neither the PIN nor the phrase. TronGrid
+builds transactions, the device verifies and signs them, and TronGrid broadcasts them. No server ever
+receives the phrase or the private key. The Supabase backend (`Services/Backend.swift`) exists only for
+optional features, and the wallet doesn't depend on it.
 
 ## 2. Key generation and derivation (`Kestrel/Crypto/`)
 
@@ -29,15 +35,21 @@ exists only for optional features, and the wallet doesn't depend on it.
 ## 3. Storage on the device
 
 Keychain (`Services/SecureStore.swift`): service `com.simnetiq.kestrel`, class generic password,
-`kSecAttrAccessibleWhenUnlockedThisDeviceOnly` (not in backups to other devices, not synced to iCloud), no
-`SecAccessControl`.
+`kSecAttrAccessibleWhenUnlockedThisDeviceOnly` (not in backups to other devices, not synced to iCloud).
+Unit tests use a service of their own, so they never touch a wallet saved on the simulator.
 
 | Account | Content |
 |---|---|
-| `wallet.mnemonic` | The recovery phrase |
-| `security.pin.v2` | `hex(salt16) + ":" + hex(SHA256(salt ‖ pin))` |
-| `security.biometric.enabled` | `"1"` when biometrics are on |
+| `wallet.phrase.sealed` | The phrase, AES-256-GCM under a key from PBKDF2-HMAC-SHA256 (600,000 rounds, 16-byte salt) of the PIN |
+| `wallet.phrase.biometric` | The phrase, behind `SecAccessControl` `.biometryCurrentSet` (`WhenPasscodeSetThisDeviceOnly`). Only while biometrics are on |
+| `wallet.address` | The TRON address |
+| `wallet.mnemonic` | The phrase in the clear, only between creating a wallet and creating its PIN |
+| `security.pin.attempts` | Wrong-PIN count and the time of the last one |
 | `support.contact.id` | `kestrel-<uuid>`: an anonymous support-chat id |
+
+Wallets saved by earlier builds (`wallet.mnemonic` for good, `security.pin.v2`, `security.biometric.enabled`)
+are moved to this layout the first time the PIN is entered. The plain copy is deleted only after the
+encrypted one has been written and read back.
 
 App Group defaults (`Shared/SharedWallet.swift`): the address, USDT and TRX balances, a timestamp, and
 the hide-balance flag, for the widget. Standard defaults hold per-transfer notes, the receive-address
@@ -45,25 +57,38 @@ nickname and the appearance choice. No keys or phrase go into defaults.
 
 ## 4. PIN, biometrics, app lock
 
-- A 6-digit PIN, stored as salted single-pass SHA-256. The lock screen disables the pad for 30 s after
-  every 5th wrong PIN. The counter lives in view state and resets on relaunch.
-- Biometrics (`LAContext`, `deviceOwnerAuthenticationWithBiometrics`) return a Bool that gates the UI.
-  They aren't bound to a Keychain item.
-- The app locks on every trip to the background. An overlay hides balances in the app switcher.
+- A 6-digit PIN. It isn't stored: it decrypts the phrase. A 6-digit PIN has a million values, so against
+  someone who has extracted the Keychain item the protection is the key-derivation cost, not secrecy.
+- Wrong PINs are counted in the Keychain, before the check runs, for every PIN prompt (lock screen, send,
+  phrase, change PIN). Four are free; then the wait is 1, 5 and 15 minutes, then an hour each time. The
+  count survives a relaunch, and setting the clock back doesn't shorten the wait.
+- Biometrics: `LAContext` (`deviceOwnerAuthenticationWithBiometrics`), then the phrase is read from the
+  biometry-bound item with that context. Unlocking, sending and showing the phrase all depend on that read.
+- Changing the PIN needs the current PIN (never biometrics). The old record stays until the new one is written.
+- Turning biometrics on needs the PIN.
+- The app locks on every trip to the background. A separate window (`App/PrivacyCurtain.swift`) covers the
+  app, sheets included, in the app switcher.
+- The recovery words are hidden while the screen is recorded or mirrored, and a screenshot of them gets a
+  warning. Third-party keyboards are disabled app-wide.
 - Copies to the clipboard are local-only (no Universal Clipboard) and expire.
 
 ## 5. Signing
 
 - libsecp256k1 (`swift-secp256k1` 0.23.2), context randomised at start. RFC 6979 nonces, low-S, recoverable.
-- USDT send (`Services/TronClient+Send.swift`): TronGrid builds the transaction and the app signs the
-  returned `txID`. **The app doesn't yet verify `txID == SHA256(raw_data_hex)` or decode `raw_data`**
-  (see §7, item 1).
+- USDT send (`Services/TronClient+Send.swift`): TronGrid builds the transaction. Before signing,
+  `Crypto/TransferVerifier.swift` decodes `raw_data_hex` and requires `SHA256(raw_data) == txID`, exactly one
+  `TriggerSmartContract`, our address as owner, the USDT contract, `transfer(address,uint256)` with the
+  confirmed recipient and amount, no TRX or token value attached, the expected `fee_limit`, and an expiry
+  within the hour. Unknown or repeated fields fail the check. The device signs the digest it computed.
+- History (`Features/Send/AddressSafety.swift`): zero-value transfers are dropped, transfers under 1 USDT
+  can't be repeated or have their address copied, and the review screen warns about a first-time recipient
+  and about one that looks like an address from the history.
 
 ## 6. What leaves the device
 
 | Destination | Data |
 |---|---|
-| `api.trongrid.io` | The wallet address (reads), signed transactions, and the IP address. The widget also reads about every 15 minutes. No API key |
+| `api.trongrid.io` | The wallet address (reads), signed transactions, and the IP address. The widget also reads about every 15 minutes. A TronGrid project key (quota only, public by design); a request the key is refused for is retried without it |
 | `api.trongrid.io` (fee estimate) | When a valid recipient is entered on Send, before the user confirms: the wallet address, the recipient address and the amount, in a read-only simulation of the transfer |
 | `api.coingecko.com` | Coin ids (`tether`, `tron`) and the IP address. Never the wallet address or a balance |
 | `api.kraken.com` | The pair names `TRXUSD` / `USDTUSD` for the 5-year chart, and the IP address. Never the wallet address or a balance |
@@ -71,25 +96,20 @@ nickname and the appearance choice. No keys or phrase go into defaults.
 | Support chat (Chatwoot, once configured) | The anonymous support id, the app name, and whatever the user types. Loads the Chatwoot JS SDK into a `WKWebView` |
 | `tronscan.org`, terms and privacy pages | Only when the user taps |
 
-Never sent: the phrase, seed, private key, PIN or PIN hash. There's no analytics or crash-reporting
+Never sent: the phrase, seed, private key or PIN. There's no analytics or crash-reporting
 SDK, no certificate pinning, and default ATS applies.
 
 ## 7. Known risks (backlog, roughly by severity)
 
-1. **Blind signing of TronGrid-built transactions.** Recompute the txID and decode `raw_data` (contract,
-   recipient, amount, `fee_limit`) before signing, or build the protobuf locally.
-2. **The phrase is protected by the Keychain only.** Consider `SecAccessControl` (`.userPresence`) or a
-   Secure Enclave wrapping key.
-3. **Weak PIN gate.** The throttle resets on relaunch, `ConfirmWithPINSheet` has no throttle, and you can
-   change the PIN without entering the old one. Persist the counters in the Keychain with escalating
-   delays.
-4. **Biometrics as a Bool** without an `evaluatedPolicyDomainState` check.
-5. **No certificate pinning** for TronGrid.
-6. **Keychain survives a reinstall.** The wallet and PIN reappear. Decide a first-launch policy.
-7. **Erase is incomplete.** Notes, the address nickname and the support id remain.
-8. **Privacy manifest.** It declares UserDefaults reason `CA92.1`, but the app and widget share App Group
-   defaults, for which Apple's reason is `1C8F.1`. Fix this before submission.
-9. **Ignored return codes**: `SecRandomCopyBytes` for the PIN salt and the secp256k1 context seed, and
-   `CCKeyDerivationPBKDF`.
-10. **Test coverage.** Two derivation vectors, no send tests, and a live network test that depends on a
-    third-party address.
+1. **No certificate pinning** for TronGrid. With transactions verified before signing, an interceptor can
+   show wrong balances and history or block sends, but can't change what is signed.
+2. **Keychain survives a reinstall.** The wallet reappears (still behind its PIN). Decide a first-launch
+   policy; a prompt that offers to wipe is itself a way to lose funds.
+3. **No wipe after repeated wrong PINs.** The wait tops out at an hour per attempt.
+4. **The recovery phrase can be copied** to the clipboard (local-only, 60 seconds).
+5. **One TronGrid key in a public repo.** It falls back to keyless requests, which have a low per-IP limit.
+   Restrict the key in the TronGrid dashboard; consider a second provider.
+6. **Support chat** (not yet switched on): navigation is limited to the Chatwoot origin, but the chat
+   content itself is third-party JavaScript.
+7. **Test coverage.** The send path is covered up to the signature (`TransferVerifierTests`); broadcasting
+   and the biometric prompt aren't exercised by tests.

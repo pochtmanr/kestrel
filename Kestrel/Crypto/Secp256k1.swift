@@ -14,8 +14,11 @@ enum Secp256k1 {
     nonisolated(unsafe) private static let context: OpaquePointer = {
         let ctx = secp256k1_context_create(contextNone)!
         var seed = [UInt8](repeating: 0, count: 32)
-        _ = SecRandomCopyBytes(kSecRandomDefault, seed.count, &seed)
-        _ = secp256k1_context_randomize(ctx, seed) // side-channel hardening
+        // Side-channel hardening. Without randomness the context is still correct,
+        // so it is used as it is rather than "randomised" with zeros.
+        if SecRandomCopyBytes(kSecRandomDefault, seed.count, &seed) == errSecSuccess {
+            _ = secp256k1_context_randomize(ctx, seed)
+        }
         return ctx
     }()
 

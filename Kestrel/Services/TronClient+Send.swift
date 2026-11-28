@@ -5,8 +5,8 @@ extension TronClient {
     /// fee_limit for a TRC20 transfer: 100 TRX, comfortably above the real burn.
     static let feeLimitSun = 100_000_000
 
-    /// Builds the TRC20 transfer on TronGrid, signs its id on the device,
-    /// and broadcasts it. The private key never leaves this function.
+    /// Builds the TRC20 transfer on TronGrid, verifies it (`TransferVerifier`),
+    /// signs its id on the device, and broadcasts it. The private key never leaves this function.
     func sendUSDT(from keys: TronKeys, to recipient: String, units: UInt64) async throws -> String {
         guard let owner = TronAddress.hex21(keys.address), let contract = TronAddress.hex21(USDT.contract),
               let recipientWord = TronAddress.abiWord(recipient) else { throw Failure.rejected(tr("Invalid address.")) }
@@ -25,10 +25,22 @@ extension TronClient {
             throw Failure.rejected(Self.decodeMessage(built) ?? tr("The network couldn't build this transfer."))
         }
         guard var transaction = built["transaction"] as? [String: Any],
-              let txID = transaction["txID"] as? String, transaction["raw_data_hex"] is String
+              let txID = transaction["txID"] as? String, let rawDataHex = transaction["raw_data_hex"] as? String
         else { throw Failure.badResponse }
 
-        transaction["signature"] = [try keys.sign(transactionID: txID)]
+        // The node built this, so check it is the transfer the user confirmed
+        // before signing: the signature covers these bytes and nothing else.
+        let digest: [UInt8]
+        do {
+            digest = try TransferVerifier.digest(
+                rawDataHex: rawDataHex, txID: txID, owner: keys.address, recipient: recipient, units: units,
+                feeLimitSun: UInt64(Self.feeLimitSun)
+            )
+        } catch {
+            throw Failure.rejected(tr("The network returned a transfer that doesn't match the one you confirmed. Nothing was signed or sent."))
+        }
+
+        transaction["signature"] = [try keys.sign(transactionID: Hex.encode(digest))]
         let broadcast = try await post("wallet/broadcasttransaction", transaction)
         guard broadcast["result"] as? Bool == true else {
             throw Failure.rejected(Self.decodeMessage(broadcast) ?? tr("The network rejected this transfer."))

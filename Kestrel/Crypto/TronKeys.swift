@@ -12,7 +12,7 @@ struct TronKeys {
     private static let hardened: UInt32 = 0x8000_0000
 
     init(mnemonic: String) throws {
-        var seed = Mnemonic.seed(from: mnemonic)
+        var seed = try Mnemonic.seed(from: mnemonic)
         defer { seed.resetBytes() }
 
         let master = Array(HMAC<SHA512>.authenticationCode(for: Data(seed), using: SymmetricKey(data: Data("Bitcoin seed".utf8))))

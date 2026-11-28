@@ -68,16 +68,40 @@ struct PinPad: View {
     }
 }
 
+/// Creates a PIN: the first one of a new wallet, or (with `changing`) a new one
+/// for a wallet whose current PIN has just been entered.
 struct PinSetupView: View {
+    /// The recovery phrase the current PIN opened. nil: a new wallet's first PIN.
+    var changing: String?
+    /// Change only: the new PIN is saved, or the user backed out.
+    var onDone: () -> Void = {}
+
     @Environment(AppModel.self) private var app
     @State private var first = ""
     @State private var entry = ""
     @State private var confirming = false
     @State private var mismatch = false
+    @State private var failed = false
+    @State private var saving = false
     @State private var offerBiometrics = false
+    /// Held between saving the PIN and the answer to "Use Face ID?".
+    @State private var phrase: String?
+
+    private var subtitle: LocalizedStringKey {
+        if failed { return "Couldn't save the PIN. Try again." }
+        if mismatch { return "PINs didn't match. Start again." }
+        if confirming { return "Enter the same 6 digits again." }
+        return "You'll use it to open \(Brand.name)."
+    }
 
     var body: some View {
         VStack(spacing: 0) {
+            if changing != nil {
+                HStack {
+                    Spacer()
+                    Button("Cancel") { onDone() }.disabled(saving)
+                }
+            }
             Spacer()
             Image(systemName: "lock.shield.fill")
                 .font(.system(size: 44))
@@ -85,12 +109,13 @@ struct PinSetupView: View {
             Text(confirming ? "Confirm your PIN" : "Create a PIN")
                 .font(.title.bold())
                 .padding(.top, 16)
-            Text(mismatch ? "PINs didn't match. Start again." : confirming ? "Enter the same 6 digits again." : "You'll use it to open \(Brand.name).")
-                .foregroundStyle(mismatch ? Theme.Palette.danger : .secondary)
+            Text(subtitle)
+                .foregroundStyle(mismatch || failed ? Theme.Palette.danger : .secondary)
                 .padding(.top, 6)
-            PinDots(filled: entry.count, isError: mismatch).padding(.top, 36)
+            PinDots(filled: entry.count, isError: mismatch || failed).padding(.top, 36)
             Spacer()
             PinPad(onDigit: add, onDelete: { if !entry.isEmpty { entry.removeLast() } })
+                .disabled(saving)
                 .padding(.bottom, 24)
         }
         .padding()
@@ -98,21 +123,28 @@ struct PinSetupView: View {
         .alert("Use \(Biometrics.label)?", isPresented: $offerBiometrics) {
             Button("Enable") {
                 Task {
-                    if await Biometrics.authenticate(reason: tr("Enable \(Biometrics.label) for \(Brand.name)")) {
-                        Biometrics.isEnabled = true
+                    if let phrase, await Biometrics.authenticate(reason: tr("Enable \(Biometrics.label) for \(Brand.name)")) {
+                        try? WalletVault.enableBiometrics(phrase: phrase)
                     }
-                    app.pinCreated()
+                    finishFirstPIN()
                 }
             }
-            Button("Not now", role: .cancel) { app.pinCreated() }
+            Button("Not now", role: .cancel) { finishFirstPIN() }
         } message: {
             Text("Unlock \(Brand.name) and confirm transfers with \(Biometrics.label) instead of typing your PIN.")
         }
+        .onDisappear { phrase = nil }
+    }
+
+    private func finishFirstPIN() {
+        phrase = nil
+        app.pinCreated()
     }
 
     private func add(_ digit: String) {
-        guard entry.count < PinStore.length else { return }
+        guard entry.count < PinStore.length, !saving else { return }
         mismatch = false
+        failed = false
         entry += digit
         guard entry.count == PinStore.length else { return }
 
@@ -124,13 +156,7 @@ struct PinSetupView: View {
                 confirming = true
             }
         } else if entry == first {
-            do {
-                try PinStore.set(entry)
-                Haptics.success()
-                if Biometrics.kind != .none { offerBiometrics = true } else { app.pinCreated() }
-            } catch {
-                restart()
-            }
+            save(entry)
         } else {
             Haptics.error()
             mismatch = true
@@ -142,6 +168,37 @@ struct PinSetupView: View {
         }
     }
 
+    /// Encrypting the phrase under the PIN takes a moment (key derivation), off the main thread.
+    private func save(_ pin: String) {
+        saving = true
+        let changing = changing
+        Task {
+            let saved: String? = await Task.detached(priority: .userInitiated) {
+                if let changing {
+                    return (try? WalletVault.changePIN(phrase: changing, to: pin)) != nil ? changing : nil
+                }
+                return try? WalletVault.createPIN(pin)
+            }.value
+            saving = false
+            guard let saved else {
+                Haptics.error()
+                restart()
+                failed = true
+                return
+            }
+            Haptics.success()
+            PinThrottle.reset()
+            if changing != nil {
+                onDone()
+            } else if Biometrics.kind != .none {
+                phrase = saved
+                offerBiometrics = true
+            } else {
+                app.pinCreated()
+            }
+        }
+    }
+
     private func restart() {
         first = ""
         entry = ""
@@ -149,12 +206,81 @@ struct PinSetupView: View {
     }
 }
 
+/// The digits typed so far and the check of a full PIN, shared by the lock
+/// screen and the confirmation sheet. Wrong attempts are counted in the
+/// Keychain (`PinThrottle`), so the wait survives a relaunch and both screens share it.
+@MainActor
+@Observable
+final class PinEntry {
+    private(set) var entry = ""
+    private(set) var wrong = false
+    private(set) var verifying = false
+    private(set) var lockedUntil: Date? = PinThrottle.lockedUntil()
+
+    func delete() {
+        if !entry.isEmpty, !verifying { entry.removeLast() }
+    }
+
+    func add(_ digit: String, onPhrase: @escaping @MainActor (String) -> Void) {
+        guard entry.count < PinStore.length, !verifying, lockedUntil == nil else { return }
+        wrong = false
+        entry += digit
+        guard entry.count == PinStore.length else { return }
+        let pin = entry
+        verifying = true
+        Task {
+            let outcome = await PinGate.submit(pin)
+            verifying = false
+            switch outcome {
+            case .phrase(let phrase):
+                entry = ""
+                onPhrase(phrase)
+            case .wrong(let until):
+                Haptics.error()
+                wrong = true
+                lockedUntil = until
+                try? await Task.sleep(for: .milliseconds(600))
+                entry = ""
+            case .locked(let until):
+                lockedUntil = until
+                entry = ""
+            }
+        }
+    }
+
+    /// Run from `.task(id: lockedUntil)`: lifts the lock when its time comes.
+    func waitOutLock() async {
+        guard let until = lockedUntil else { return }
+        let wait = until.timeIntervalSinceNow
+        if wait > 0 { try? await Task.sleep(for: .seconds(wait)) }
+        guard !Task.isCancelled else { return }
+        lockedUntil = PinThrottle.lockedUntil()
+    }
+}
+
+/// "Wrong PIN", the wait after too many of them, or the screen's own prompt.
+private struct PinPrompt: View {
+    let pin: PinEntry
+    let idle: LocalizedStringKey
+
+    var body: some View {
+        Group {
+            if let until = pin.lockedUntil {
+                Text("Too many attempts. Try again in \(Text(until, style: .timer)).").monospacedDigit()
+            } else if pin.wrong {
+                Text("Wrong PIN")
+            } else {
+                Text(idle)
+            }
+        }
+        .multilineTextAlignment(.center)
+        .foregroundStyle(pin.wrong || pin.lockedUntil != nil ? Theme.Palette.danger : .secondary)
+    }
+}
+
 struct LockView: View {
     @Environment(AppModel.self) private var app
-    @State private var entry = ""
-    @State private var wrong = false
-    @State private var failures = 0
-    @State private var lockedUntil: Date?
+    @State private var pin = PinEntry()
 
     var body: some View {
         VStack(spacing: 0) {
@@ -164,68 +290,40 @@ struct LockView: View {
                 .frame(width: 72, height: 72)
                 .clipShape(.rect(cornerRadius: Theme.Radius.xl))
             Text("Enter PIN").font(.title.bold()).padding(.top, 18)
-            Text(subtitle)
-                .foregroundStyle(wrong ? Theme.Palette.danger : .secondary)
-                .padding(.top, 6)
-            PinDots(filled: entry.count, isError: wrong).padding(.top, 36)
+            PinPrompt(pin: pin, idle: "Welcome back").padding(.top, 6)
+            PinDots(filled: pin.entry.count, isError: pin.wrong).padding(.top, 36)
             Spacer()
             PinPad(
                 biometricSymbol: Biometrics.isEnabled ? Biometrics.symbol : nil,
-                onDigit: add,
-                onDelete: { if !entry.isEmpty { entry.removeLast() } },
+                onDigit: { pin.add($0) { _ in app.unlock() } },
+                onDelete: pin.delete,
                 onBiometric: biometric
             )
-            .disabled(isThrottled)
+            .disabled(pin.lockedUntil != nil || pin.verifying)
             .padding(.bottom, 24)
         }
         .padding()
         .fitOrScroll()
         .task { if Biometrics.isEnabled { biometric() } }
+        .task(id: pin.lockedUntil) { await pin.waitOutLock() }
     }
 
-    private var isThrottled: Bool { (lockedUntil ?? .distantPast) > .now }
-
-    private var subtitle: String {
-        if isThrottled { return tr("Too many attempts. Try again in 30 seconds.") }
-        return wrong ? tr("Wrong PIN") : tr("Welcome back")
-    }
-
+    /// Opens only if iOS releases the phrase's biometric copy: a face enrolled
+    /// after Face ID was turned on here doesn't get in.
     private func biometric() {
         Task {
-            if await Biometrics.authenticate(reason: tr("Unlock \(Brand.name)")) { app.unlock() }
-        }
-    }
-
-    private func add(_ digit: String) {
-        guard entry.count < PinStore.length, !isThrottled else { return }
-        wrong = false
-        entry += digit
-        guard entry.count == PinStore.length else { return }
-
-        if PinStore.verify(entry) {
-            failures = 0
-            app.unlock()
-        } else {
-            Haptics.error()
-            wrong = true
-            failures += 1
-            if failures % 5 == 0 { lockedUntil = .now.addingTimeInterval(30) }
-            Task {
-                try? await Task.sleep(for: .milliseconds(600))
-                entry = ""
-            }
+            if await Biometrics.unlockPhrase(reason: tr("Unlock \(Brand.name)")) != nil { app.unlock() }
         }
     }
 }
 
-/// PIN (or biometrics) re-check before sensitive actions: showing the
-/// recovery phrase, sending funds.
+/// The PIN before a sensitive action: showing the recovery phrase, sending
+/// funds, changing the PIN. The right PIN decrypts the phrase, which is handed on.
 struct ConfirmWithPINSheet: View {
     let title: LocalizedStringKey
-    let onSuccess: () -> Void
+    let onSuccess: (String) -> Void
     @Environment(\.dismiss) private var dismiss
-    @State private var entry = ""
-    @State private var wrong = false
+    @State private var pin = PinEntry()
 
     var body: some View {
         VStack(spacing: 0) {
@@ -235,35 +333,25 @@ struct ConfirmWithPINSheet: View {
             }
             Spacer()
             Text(title).font(.title2.bold())
-            Text(wrong ? "Wrong PIN" : "Enter your PIN to continue")
-                .foregroundStyle(wrong ? Theme.Palette.danger : .secondary)
-                .padding(.top, 6)
-            PinDots(filled: entry.count, isError: wrong).padding(.top, 30)
+            PinPrompt(pin: pin, idle: "Enter your PIN to continue").padding(.top, 6)
+            PinDots(filled: pin.entry.count, isError: pin.wrong).padding(.top, 30)
             Spacer()
-            PinPad(onDigit: add, onDelete: { if !entry.isEmpty { entry.removeLast() } })
-                .padding(.bottom, 16)
+            PinPad(
+                onDigit: { digit in
+                    pin.add(digit) { phrase in
+                        dismiss()
+                        onSuccess(phrase)
+                    }
+                },
+                onDelete: pin.delete
+            )
+            .disabled(pin.lockedUntil != nil || pin.verifying)
+            .padding(.bottom, 16)
         }
         .padding()
         .fitOrScroll()
         .presentationDetents([.large])
-    }
-
-    private func add(_ digit: String) {
-        guard entry.count < PinStore.length else { return }
-        wrong = false
-        entry += digit
-        guard entry.count == PinStore.length else { return }
-        if PinStore.verify(entry) {
-            dismiss()
-            onSuccess()
-        } else {
-            Haptics.error()
-            wrong = true
-            Task {
-                try? await Task.sleep(for: .milliseconds(600))
-                entry = ""
-            }
-        }
+        .task(id: pin.lockedUntil) { await pin.waitOutLock() }
     }
 }
 

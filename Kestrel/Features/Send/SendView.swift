@@ -153,8 +153,8 @@ struct SendView: View {
             }
         }
         .sheet(isPresented: $showPIN) {
-            ConfirmWithPINSheet(title: "Confirm transfer") {
-                if let approving { send(approving) }
+            ConfirmWithPINSheet(title: "Confirm transfer") { phrase in
+                if let approving { send(approving, phrase: phrase) }
             }
         }
         .sheet(isPresented: $showSupport) { SupportChatSheet() }
@@ -501,17 +501,18 @@ struct SendView: View {
 
     // MARK: Authorise and send
 
-    /// PIN or Face ID, exactly as before: Face ID when it's on, falling back to the PIN.
+    /// Face ID when it's on, falling back to the PIN. Either one yields the
+    /// recovery phrase to sign with: nothing can be sent without one of them.
     private func authorize(_ transfer: SendTransfer) {
         guard !authorizing else { return }
         approving = transfer
         if Biometrics.isEnabled {
             authorizing = true
             Task {
-                let approved = await Biometrics.authenticate(reason: tr("Confirm sending USDT"))
+                let phrase = await Biometrics.unlockPhrase(reason: tr("Confirm sending USDT"))
                 authorizing = false
-                if approved {
-                    send(transfer)
+                if let phrase {
+                    send(transfer, phrase: phrase)
                 } else {
                     showReview = false
                     showPIN = true
@@ -523,7 +524,7 @@ struct SendView: View {
         }
     }
 
-    private func send(_ transfer: SendTransfer) {
+    private func send(_ transfer: SendTransfer, phrase: String) {
         // One broadcast per approval, whatever gets tapped twice.
         if submission?.state == .sending { return }
         showReview = false
@@ -536,7 +537,7 @@ struct SendView: View {
         Task {
             let outcome: SendSubmission.State
             do {
-                let txID = try await broadcast(transfer)
+                let txID = try await broadcast(transfer, phrase: phrase)
                 outcome = .sent(txID: txID)
             } catch {
                 outcome = .failed(SendFailure.from(error, units: transfer.units, usdtBalance: usdtBalance))
@@ -547,7 +548,7 @@ struct SendView: View {
         }
     }
 
-    private func broadcast(_ transfer: SendTransfer) async throws -> String {
+    private func broadcast(_ transfer: SendTransfer, phrase: String) async throws -> String {
         #if DEBUG
         // The demo wallet never touches the network or the Keychain's real keys.
         if app.isDemo {
@@ -558,11 +559,12 @@ struct SendView: View {
         #endif
         let keys: TronKeys
         do {
-            guard let stored = try WalletVault.keys() else { throw WalletMissing() }
-            keys = stored
+            keys = try TronKeys(mnemonic: phrase)
         } catch {
             throw WalletMissing()
         }
+        // The phrase must be this wallet's: the balance and review were for its address.
+        guard keys.address == app.address else { throw WalletMissing() }
         return try await app.tron.sendUSDT(from: keys, to: transfer.to, units: transfer.units)
     }
 

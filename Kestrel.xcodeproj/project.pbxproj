@@ -53,6 +53,7 @@
 		704C391044A8D4B375C705AA /* TronAddress.swift in Sources */ = {isa = PBXBuildFile; fileRef = 800D6437CFE437B1AFE9CB76 /* TronAddress.swift */; };
 		74D8EBE7EBE4C568BA93894A /* Keccak256.swift in Sources */ = {isa = PBXBuildFile; fileRef = B95AA7DE41AD31EF9F12E7BC /* Keccak256.swift */; };
 		752D037577BE00A69BD6CFA2 /* TronKeys.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF42D9000991CE440510965B /* TronKeys.swift */; };
+		7676C345909B25D41EE0196B /* MigrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DE2F2BAB34E072E0466DC12 /* MigrationTests.swift */; };
 		77088730C52280F2017A1C60 /* Market.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE6FA289DCB679D83EEAEF50 /* Market.swift */; };
 		77DA9C78FB8206533D4290CD /* SendStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE2BA14DC96952BE7ABC940A /* SendStatusView.swift */; };
 		7BBB66DFAAF352517FFFDCD9 /* AlertNotifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3869F5ADB394E2865FF2012D /* AlertNotifier.swift */; };
@@ -70,6 +71,7 @@
 		9CDBFCBA73D5B1843FDE09C1 /* TransferVerifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8DC9591A79B3A3AF65985D97 /* TransferVerifier.swift */; };
 		9D9D7F183BF0ED3AFACE4D3B /* ActivityStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4A7CC8397A7131EDBC484C0 /* ActivityStore.swift */; };
 		9F97A218EA40BEDF5430B69B /* Backend.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAAC179E692CE828B7281A83 /* Backend.swift */; };
+		A06236631718A7A671DBF9DD /* Driver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87F23E05E75B1E072F5C4707 /* Driver.swift */; };
 		A5B8309FCE5E3E866E6339B8 /* InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 31923674EA726C0D15B268E9 /* InfoPlist.xcstrings */; };
 		A6BA3A8CFF020F12778DF8F6 /* BalanceWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8873C06992CC6E2CBF2F3E9A /* BalanceWidget.swift */; };
 		AAE236B6E0F66B3AAB3A0D0C /* ActivityFilterSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACE730C857DDA36CE301FAF3 /* ActivityFilterSheet.swift */; };
@@ -77,6 +79,7 @@
 		B3910C1524BCBA654FCD837E /* AppLanguage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39D6144DBF875E41E685CD73 /* AppLanguage.swift */; };
 		B44C01FD877964B5FA354C0F /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = D14927E8BA94E90D98B64A1A /* Components.swift */; };
 		B5A10E10B55F629F15D8C425 /* SharedWallet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33F00C185E7B4218571870D1 /* SharedWallet.swift */; };
+		B9BFC859D40308986DF71E97 /* SecurityFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56F069B8F3EAA58D8325DF69 /* SecurityFlowTests.swift */; };
 		BDAE09BF06FD259FA66D2E44 /* Encoding.swift in Sources */ = {isa = PBXBuildFile; fileRef = A874D272EEAC21447604D936 /* Encoding.swift */; };
 		BFD1D6E864C3AD4C06F71C1E /* AddressSafety.swift in Sources */ = {isa = PBXBuildFile; fileRef = 450F689C0374FD9572367E73 /* AddressSafety.swift */; };
 		C54FA6AB8C50E5C98C4120D7 /* ExpandedChartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 530BCB12E5A4D4F6469C3A52 /* ExpandedChartView.swift */; };
@@ -114,6 +117,13 @@
 			remoteGlobalIDString = 5FA3568296265C2133AA1DE4;
 			remoteInfo = KestrelWidget;
 		};
+		EF3CCC43154BE7421D2DD469 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = DA0244BDDDBCF011E3093BBB /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 4810B0247359099A10B3780D;
+			remoteInfo = Kestrel;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -138,6 +148,7 @@
 		1584DCA53B33ACE4344C3C30 /* PriceAlertsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PriceAlertsView.swift; sourceTree = "<group>"; };
 		196F91417DE74D19415E5DC6 /* ActivityChart.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityChart.swift; sourceTree = "<group>"; };
 		1AC3E19AB724C54687F7A389 /* Brand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Brand.swift; sourceTree = "<group>"; };
+		1DE2F2BAB34E072E0466DC12 /* MigrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MigrationTests.swift; sourceTree = "<group>"; };
 		1F0B3EEF92EB3C09F171937C /* DepositView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DepositView.swift; sourceTree = "<group>"; };
 		2792E6EC8E4B906E2DC0F61A /* PriceChartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PriceChartView.swift; sourceTree = "<group>"; };
 		27A9B5C0B1627CC14BE05F97 /* LanguagePickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LanguagePickerView.swift; sourceTree = "<group>"; };
@@ -162,6 +173,7 @@
 		508912270C486821A59D6735 /* WalletView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletView.swift; sourceTree = "<group>"; };
 		51F525398E3C60AEE20630FD /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = wrapper.icon; path = AppIcon.icon; sourceTree = "<group>"; };
 		530BCB12E5A4D4F6469C3A52 /* ExpandedChartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExpandedChartView.swift; sourceTree = "<group>"; };
+		56F069B8F3EAA58D8325DF69 /* SecurityFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecurityFlowTests.swift; sourceTree = "<group>"; };
 		5852A34D65FDCEC55E7F1619 /* PinViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PinViews.swift; sourceTree = "<group>"; };
 		5ED8A0264D1CBF4AA9E4E93F /* TronNetworkTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TronNetworkTests.swift; sourceTree = "<group>"; };
 		6007C2C996095D5A5F0EAB68 /* ActivityAnalyticsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityAnalyticsTests.swift; sourceTree = "<group>"; };
@@ -173,10 +185,12 @@
 		767FAD02BDF8ED89E5D6D868 /* AppearanceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppearanceView.swift; sourceTree = "<group>"; };
 		775DF6A7EB4893C52931147B /* OnboardingViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingViews.swift; sourceTree = "<group>"; };
 		7884F0575F37BFF4590F6F79 /* PriceAlertTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PriceAlertTests.swift; sourceTree = "<group>"; };
+		7C6AA73191493136F4B2BF28 /* KestrelUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = KestrelUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		7D7BC74997F289A4441F3C45 /* KestrelApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KestrelApp.swift; sourceTree = "<group>"; };
 		800D6437CFE437B1AFE9CB76 /* TronAddress.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TronAddress.swift; sourceTree = "<group>"; };
 		829BF59C9B9C388C4FAE20DA /* KestrelWidget.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = KestrelWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		833E81C74CD67275CE39A824 /* Secp256k1.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Secp256k1.swift; sourceTree = "<group>"; };
+		87F23E05E75B1E072F5C4707 /* Driver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Driver.swift; sourceTree = "<group>"; };
 		8873C06992CC6E2CBF2F3E9A /* BalanceWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BalanceWidget.swift; sourceTree = "<group>"; };
 		8CE21BC12769E95B4C84CD2A /* SupportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupportView.swift; sourceTree = "<group>"; };
 		8D7DF4AAA3D4E6854CD9865D /* CryptoVectorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CryptoVectorTests.swift; sourceTree = "<group>"; };
@@ -311,6 +325,7 @@
 			children = (
 				9207F45D3AAD7DEE6C45AADD /* Kestrel */,
 				5033C51A3F1E5EAD624C9E78 /* KestrelTests */,
+				C8667F428F1F304E8001DEAB /* KestrelUITests */,
 				ECE28F4DCA83E1269ACA8880 /* KestrelWidget */,
 				AB2679C751A92710AC737258 /* Products */,
 			);
@@ -401,6 +416,7 @@
 			children = (
 				AA5B98ACF83D26C0A1E65535 /* Kestrel.app */,
 				C67A9157C900B24284D760C1 /* KestrelTests.xctest */,
+				7C6AA73191493136F4B2BF28 /* KestrelUITests.xctest */,
 				829BF59C9B9C388C4FAE20DA /* KestrelWidget.appex */,
 			);
 			name = Products;
@@ -425,6 +441,16 @@
 				64C21130CFE8ACCDA28A2521 /* ActivityView.swift */,
 			);
 			path = Activity;
+			sourceTree = "<group>";
+		};
+		C8667F428F1F304E8001DEAB /* KestrelUITests */ = {
+			isa = PBXGroup;
+			children = (
+				87F23E05E75B1E072F5C4707 /* Driver.swift */,
+				1DE2F2BAB34E072E0466DC12 /* MigrationTests.swift */,
+				56F069B8F3EAA58D8325DF69 /* SecurityFlowTests.swift */,
+			);
+			path = KestrelUITests;
 			sourceTree = "<group>";
 		};
 		D761DB745D08831B073551FC /* Currencies */ = {
@@ -557,6 +583,24 @@
 			productReference = C67A9157C900B24284D760C1 /* KestrelTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
+		F3423038B5C2DDD00A97A7E4 /* KestrelUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 33DF5A62FD2040DE0FE17046 /* Build configuration list for PBXNativeTarget "KestrelUITests" */;
+			buildPhases = (
+				F366AB556C7FB902ABC9091F /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				DB73EE502CBBBACEEB30E329 /* PBXTargetDependency */,
+			);
+			name = KestrelUITests;
+			packageProductDependencies = (
+			);
+			productName = KestrelUITests;
+			productReference = 7C6AA73191493136F4B2BF28 /* KestrelUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -576,6 +620,11 @@
 					};
 					6631B253EBBFEA80F32D0368 = {
 						DevelopmentTeam = F7YY9U667A;
+					};
+					F3423038B5C2DDD00A97A7E4 = {
+						DevelopmentTeam = F7YY9U667A;
+						ProvisioningStyle = Automatic;
+						TestTargetID = 4810B0247359099A10B3780D;
 					};
 				};
 			};
@@ -600,6 +649,7 @@
 			targets = (
 				4810B0247359099A10B3780D /* Kestrel */,
 				6631B253EBBFEA80F32D0368 /* KestrelTests */,
+				F3423038B5C2DDD00A97A7E4 /* KestrelUITests */,
 				5FA3568296265C2133AA1DE4 /* KestrelWidget */,
 			);
 		};
@@ -739,6 +789,16 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		F366AB556C7FB902ABC9091F /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A06236631718A7A671DBF9DD /* Driver.swift in Sources */,
+				7676C345909B25D41EE0196B /* MigrationTests.swift in Sources */,
+				B9BFC859D40308986DF71E97 /* SecurityFlowTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -751,6 +811,11 @@
 			isa = PBXTargetDependency;
 			target = 5FA3568296265C2133AA1DE4 /* KestrelWidget */;
 			targetProxy = A3EBF164DA9C880FFEC4FBF1 /* PBXContainerItemProxy */;
+		};
+		DB73EE502CBBBACEEB30E329 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 4810B0247359099A10B3780D /* Kestrel */;
+			targetProxy = EF3CCC43154BE7421D2DD469 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -798,6 +863,42 @@
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
+		};
+		7CE8133BA8EDD5C88566DD79 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.simnetiq.kestrel.uitests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = Kestrel;
+			};
+			name = Debug;
+		};
+		85B8A3D0AAF6D6D254743326 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.simnetiq.kestrel.uitests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = Kestrel;
+			};
+			name = Release;
 		};
 		88B7073BA47DE541FEA48ADD /* Debug */ = {
 			isa = XCBuildConfiguration;
@@ -1014,6 +1115,15 @@
 			buildConfigurations = (
 				A9C560D5A3324508A2E8A60A /* Debug */,
 				E787568F0A895F606B50D640 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		33DF5A62FD2040DE0FE17046 /* Build configuration list for PBXNativeTarget "KestrelUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				7CE8133BA8EDD5C88566DD79 /* Debug */,
+				85B8A3D0AAF6D6D254743326 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;

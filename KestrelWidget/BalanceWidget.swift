@@ -17,7 +17,8 @@ struct BalanceWidget: Widget {
                 .containerBackground(for: .widget) { WidgetBackground() }
         }
         .configurationDisplayName("Balance")
-        .description("Your \(Brand.name) USDT balance at a glance.")
+        // Resolved to a plain string first: WidgetKit asserts on a localised key that carries an argument.
+        .description(Text(verbatim: tr("Your \(Brand.name) USDT balance at a glance.")))
         .supportedFamilies([.systemSmall, .systemMedium, .systemLarge, .accessoryRectangular, .accessoryInline, .accessoryCircular])
     }
 }

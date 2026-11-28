@@ -119,6 +119,21 @@ targets:
         TEST_HOST: $(BUILT_PRODUCTS_DIR)/Kestrel.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Kestrel
         BUNDLE_LOADER: $(TEST_HOST)
 
+  # Drives the real app on a simulator: security flows that unit tests can't reach, and screenshots.
+  KestrelUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: KestrelUITests
+    dependencies:
+      - target: Kestrel
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.simnetiq.kestrel.uitests
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_TARGET_NAME: Kestrel
+        CODE_SIGN_STYLE: Automatic
+
 schemes:
   Kestrel:
     build:
@@ -130,3 +145,12 @@ schemes:
         - KestrelTests
     archive:
       config: Release
+  # Kept out of the Kestrel scheme so `xcodebuild test` stays the quick unit run.
+  KestrelUITests:
+    build:
+      targets:
+        Kestrel: all
+        KestrelUITests: [test]
+    test:
+      targets:
+        - KestrelUITests

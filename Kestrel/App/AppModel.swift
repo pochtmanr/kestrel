@@ -30,11 +30,38 @@ final class AppModel {
     /// When `markets` last arrived (nil = never).
     private(set) var marketsUpdatedAt: Date?
     private var pricesFetchedAt: Date?
-    /// Coin screen charts, kept a few minutes per coin and range.
+    /// Coin screen charts per coin and range, fresh for `PriceRange.cacheLifetime`.
+    /// `ChartCache` keeps the same on disk across launches.
     private var charts: [ChartKey: (points: [PricePoint], fetched: Date)] = [:]
+    /// Chart loads in flight, so two callers asking for the same one share a request.
+    private var chartLoads: [ChartKey: Task<[PricePoint], Error>] = [:]
     private struct ChartKey: Hashable { let token: TokenKind; let range: PriceRange }
 
-    enum Tab: Hashable { case wallet, activity }
+    /// iPhone shows Wallet and Activity as tabs; the wide-screen sidebar adds
+    /// the rest as sections (on iPhone they're pushes from the home).
+    enum Tab: Hashable, CaseIterable {
+        case wallet, activity, currencies, receive, settings
+
+        var title: LocalizedStringKey {
+            switch self {
+            case .wallet: "Wallet"
+            case .activity: "Activity"
+            case .currencies: "Currencies"
+            case .receive: "Receive"
+            case .settings: "Settings"
+            }
+        }
+
+        var icon: String {
+            switch self {
+            case .wallet: "wallet.bifold"
+            case .activity: "chart.bar.xaxis"
+            case .currencies: "chart.line.uptrend.xyaxis"
+            case .receive: "arrow.down.left"
+            case .settings: "gearshape"
+            }
+        }
+    }
     var selectedTab: Tab = .wallet
 
     /// A send to present over whichever tab is showing (nil = none).
@@ -84,6 +111,9 @@ final class AppModel {
         stage = .unlocked
         // `-activity` with `-demo`: open on the Activity tab (screenshots, UI checks).
         if CommandLine.arguments.contains("-activity") { selectedTab = .activity }
+        // `-route lock`: the lock screen over the demo wallet (screenshots only: it has no PIN to enter).
+        let args = CommandLine.arguments
+        if let i = args.firstIndex(of: "-route"), args.indices.contains(i + 1), args[i + 1] == "lock" { stage = .locked }
     }
     #endif
 
@@ -182,17 +212,35 @@ final class AppModel {
         charts[ChartKey(token: token, range: range)]?.points
     }
 
-    /// Price history for the coin screen. Served from cache for 5 minutes;
-    /// on a failure the stale copy is returned when there is one.
+    /// Price history for the coin screen: from memory, then disk, while the
+    /// copy is younger than the range's `cacheLifetime`, else from the network.
+    /// On a failure the stale copy is returned when there is one.
     func chart(for token: TokenKind, range: PriceRange) async throws -> [PricePoint] {
         let key = ChartKey(token: token, range: range)
         #if DEBUG
         if isDemo { return MarketDemo.chart(for: token, range: range) }
         #endif
-        if let cached = charts[key], Date.now.timeIntervalSince(cached.fetched) < 300 { return cached.points }
+        if let cached = charts[key], Self.isFresh(cached.fetched, for: range) { return cached.points }
+        if let running = chartLoads[key] { return try await running.value }
+        let load = Task { try await loadChart(key) }
+        chartLoads[key] = load
+        defer { chartLoads[key] = nil }
+        return try await load.value
+    }
+
+    private func loadChart(_ key: ChartKey) async throws -> [PricePoint] {
+        let (token, range) = (key.token, key.range)
+        if charts[key] == nil,
+           let saved = await Task.detached(priority: .userInitiated, operation: { ChartCache.load(token: token, range: range) }).value {
+            charts[key] = saved
+            if Self.isFresh(saved.fetched, for: range) { return saved.points }
+        }
         do {
             let points = try await priceClient.chart(for: token, range: range)
+            // An empty answer isn't a chart; keep whatever was there before.
+            guard !points.isEmpty else { throw PriceClient.Failure.badResponse }
             charts[key] = (points, .now)
+            Task.detached(priority: .utility) { ChartCache.save(points, token: token, range: range) }
             return points
         } catch {
             if let stale = charts[key] { return stale.points }
@@ -200,12 +248,29 @@ final class AppModel {
         }
     }
 
+    private static func isFresh(_ fetched: Date, for range: PriceRange) -> Bool {
+        Date.now.timeIntervalSince(fetched) < range.cacheLifetime
+    }
+
+    /// Percent change over the last five years, from the (cached) weekly
+    /// chart. nil when it can't be loaded or the coin's history is shorter.
+    func fiveYearChange(for token: TokenKind) async -> Double? {
+        guard let points = try? await chart(for: token, range: .fiveYears), let first = points.first else { return nil }
+        // The series is trimmed to five years; if it starts well after that
+        // mark, the change would cover a shorter span than the label says.
+        let start = Date.now.addingTimeInterval(-Double(PriceRange.fiveYears.days) * 86_400)
+        guard first.date.timeIntervalSince(start) < 21 * 86_400 else { return nil }
+        return points.changePercent
+    }
+
     /// Hand the fresh balance to the home/lock screen widgets, reloading them
     /// only when something they display actually changed.
     private func shareWithWidgets(address: String) {
         let previous = SharedWallet.snapshot
+        let recent = Array(history.prefix(SharedWallet.recentCount))
         let changed = previous?.address != address || previous?.usdtUnits != usdtUnits || previous?.trxSun != trxSun
-        SharedWallet.save(.init(address: address, usdtUnits: usdtUnits, trxSun: trxSun, updatedAt: .now))
+            || previous?.recent?.map(\.id) != recent.map(\.id)
+        SharedWallet.save(.init(address: address, usdtUnits: usdtUnits, trxSun: trxSun, updatedAt: .now, recent: recent))
         if changed { WidgetCenter.shared.reloadTimelines(ofKind: SharedWallet.widgetKind) }
     }
 }

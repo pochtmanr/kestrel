@@ -28,57 +28,95 @@ private struct WelcomeView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var appeared = false
 
+    /// Landscape iPad or an unfolded iPhone: the photo on the left, the words on the right.
+    @State private var size: CGSize = .zero
+    private var isLandscape: Bool { size.width > size.height * 1.1 }
+
     var body: some View {
         ZStack {
             Theme.Palette.brandNight.ignoresSafeArea()
-            BrandBackdrop(heightFraction: 0.74)
-            scrim
-
-            VStack(alignment: .leading, spacing: 0) {
-                wordmark
-                    .stagger(appeared, step: 0, reduceMotion: reduceMotion)
-                Spacer(minLength: 24)
-
-                Text(verbatim: "> self-custody · USDT · TRON_")
-                    .font(.system(size: 12, weight: .medium, design: .monospaced))
-                    .foregroundStyle(Theme.Palette.brandSky.opacity(0.75))
-                    .accessibilityHidden(true)
-                    .stagger(appeared, step: 1, reduceMotion: reduceMotion)
-
-                Text("Your dollars.\nYour keys.")
-                    .font(.system(size: 44, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
-                    .lineSpacing(-2)
-                    .minimumScaleFactor(0.7)
-                    .padding(.top, 12)
-                    .accessibilityAddTraits(.isHeader)
-                    .stagger(appeared, step: 1, reduceMotion: reduceMotion)
-
-                Text("A USDT wallet that lives only on this phone. No account, no sign-up. Nobody else can move your money.")
-                    .font(.body)
-                    .foregroundStyle(.white.opacity(0.72))
-                    .padding(.top, 12)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .stagger(appeared, step: 2, reduceMotion: reduceMotion)
-
-                VStack(spacing: 12) {
-                    Button("Create a new wallet", action: create)
-                        .buttonStyle(SkyButtonStyle())
-                    Button("I already have a wallet", action: restore)
-                        .buttonStyle(GlassOutlineButtonStyle())
-                        .accessibilityHint("Restore with your recovery phrase")
+            if isLandscape {
+                HStack(spacing: 0) {
+                    BrandBackdrop()
+                        .frame(width: size.width * 0.55)
+                        // Fades into the night where the words begin.
+                        .mask(LinearGradient(stops: [.init(color: .black, location: 0.7), .init(color: .clear, location: 1)],
+                                             startPoint: .leading, endPoint: .trailing))
+                    Spacer(minLength: 0)
                 }
-                .padding(.top, 28)
-                .stagger(appeared, step: 3, reduceMotion: reduceMotion)
+                .ignoresSafeArea()
+                HStack {
+                    Spacer(minLength: size.width * 0.5)
+                    copy
+                        .frame(maxWidth: 460)
+                        .padding(.vertical, 32)
+                    Spacer(minLength: 32)
+                }
+            } else {
+                BrandBackdrop(heightFraction: 0.74)
+                scrim
+
+                copy
+                    .padding(.horizontal, 24)
+                    .padding(.top, 12)
+                    .padding(.bottom, 8)
+                    .readableWidth()
             }
-            .padding(.horizontal, 24)
-            .padding(.top, 12)
-            .padding(.bottom, 8)
-            .readableWidth()
         }
+        .onGeometryChange(for: CGSize.self) { $0.size } action: { size = $0 }
         .environment(\.colorScheme, .dark)
         // Each piece animates itself in (see `stagger`), after the splash clears.
         .onAppear { appeared = true }
+    }
+
+    private var copy: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            wordmark
+                .stagger(appeared, step: 0, reduceMotion: reduceMotion)
+            Spacer(minLength: 24)
+
+            Text(verbatim: "> self-custody · USDT · TRON_")
+                .font(.system(size: 12, weight: .medium, design: .monospaced))
+                .foregroundStyle(Theme.Palette.brandSky.opacity(0.75))
+                .accessibilityHidden(true)
+                .stagger(appeared, step: 1, reduceMotion: reduceMotion)
+
+            Text("Your dollars.\nYour keys.")
+                .font(.system(size: 44, weight: .bold, design: .rounded))
+                .foregroundStyle(.white)
+                .lineSpacing(-2)
+                .minimumScaleFactor(0.7)
+                .padding(.top, 12)
+                .accessibilityAddTraits(.isHeader)
+                .stagger(appeared, step: 1, reduceMotion: reduceMotion)
+
+            Text("A USDT wallet that lives only on this phone. No account, no sign-up. Nobody else can move your money.")
+                .font(.body)
+                .foregroundStyle(.white.opacity(0.72))
+                .padding(.top, 12)
+                .fixedSize(horizontal: false, vertical: true)
+                .stagger(appeared, step: 2, reduceMotion: reduceMotion)
+
+            VStack(spacing: 12) {
+                Button("Create a new wallet", action: create)
+                    .buttonStyle(SkyButtonStyle())
+                Button("I already have a wallet", action: restore)
+                    .buttonStyle(GlassOutlineButtonStyle())
+                    .accessibilityHint("Restore with your recovery phrase")
+            }
+            .padding(.top, 28)
+            .stagger(appeared, step: 3, reduceMotion: reduceMotion)
+
+            // The only point where the terms are accepted: there is no account
+            // and no sign-up, so creating or restoring a wallet is the agreement.
+            Text("By continuing you agree to the [Terms of Use](https://kastrel.xyz/terms/) and [Privacy Policy](https://kastrel.xyz/privacy/), and confirm that you are 18 or older.")
+                .font(.footnote)
+                .foregroundStyle(.white.opacity(0.6))
+                .tint(Theme.Palette.brandSky)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, 16)
+                .stagger(appeared, step: 3, reduceMotion: reduceMotion)
+        }
     }
 
     private var wordmark: some View {
@@ -118,7 +156,8 @@ private struct SkyButtonStyle: ButtonStyle {
             .font(.headline)
             .foregroundStyle(Theme.Palette.brandNight)
             .frame(maxWidth: .infinity, minHeight: 54)
-            .background(Theme.Palette.brandSky, in: .rect(cornerRadius: Theme.Radius.l, style: .continuous))
+            .background(Theme.Palette.brandSky, in: .capsule)
+            .contentShape(.capsule)
             .shadow(color: Theme.Palette.brandSky.opacity(0.3), radius: 18, y: 6)
             .scaleEffect(configuration.isPressed ? 0.98 : 1)
             .animation(.snappy(duration: 0.15), value: configuration.isPressed)
@@ -132,8 +171,9 @@ private struct GlassOutlineButtonStyle: ButtonStyle {
             .font(.headline)
             .foregroundStyle(.white)
             .frame(maxWidth: .infinity, minHeight: 54)
-            .background(.ultraThinMaterial, in: .rect(cornerRadius: Theme.Radius.l, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: Theme.Radius.l, style: .continuous).strokeBorder(.white.opacity(0.16)))
+            .background(.ultraThinMaterial, in: .capsule)
+            .overlay(Capsule().strokeBorder(.white.opacity(0.16)))
+            .contentShape(.capsule)
             .opacity(configuration.isPressed ? 0.75 : 1)
     }
 }

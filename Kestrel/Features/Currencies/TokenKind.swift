@@ -28,6 +28,14 @@ enum TokenKind: String, CaseIterable, Hashable, Sendable {
         }
     }
 
+    /// The coin's dollar market on Kraken (weekly candles for the 5-year chart).
+    var krakenPair: String {
+        switch self {
+        case .usdt: "USDTUSD"
+        case .trx: "TRXUSD"
+        }
+    }
+
     var network: LocalizedStringKey {
         switch self {
         case .usdt: "TRON · TRC-20"
@@ -135,9 +143,9 @@ enum FuelLevel {
 
     func note(transfersLeft: Int64) -> String {
         switch self {
-        case .empty: String(localized: "Add TRX to send USDT")
-        case .low: String(localized: "Low: about \(transfersLeft) transfers left")
-        case .good: String(localized: "Pays network fees")
+        case .empty: tr("Add TRX to send USDT")
+        case .low: tr("Low: about \(transfersLeft) transfers left")
+        case .good: tr("Pays network fees")
         }
     }
 }

@@ -1,0 +1,47 @@
+{
+  "home": {
+    "eyebrow": "Self-custody",
+    "title": "Your USDT. Your keys.",
+    "body": "A USDT wallet on TRON that lives only on your device. No account, no sign-up."
+  },
+  "send": {
+    "eyebrow": "Send",
+    "title": "Check twice. Send once.",
+    "body": "Review the address, the amount and the TRX network fee before anything leaves your wallet."
+  },
+  "receive": {
+    "eyebrow": "Receive",
+    "title": "Get paid with a QR code",
+    "body": "Share your TRON address or ask for an exact amount. Receiving is free."
+  },
+  "activity": {
+    "eyebrow": "Activity",
+    "title": "See where your money goes",
+    "body": "Charts, insights and top counterparties, worked out on your device from your own history."
+  },
+  "coin": {
+    "eyebrow": "Markets",
+    "title": "USDT and TRX, side by side",
+    "body": "Prices, charts and your position for each coin you hold."
+  },
+  "transfer": {
+    "eyebrow": "Transfers",
+    "title": "Every transfer, on the record",
+    "body": "Status, network fee and transaction ID, with a direct link to Tronscan."
+  },
+  "security": {
+    "eyebrow": "Security",
+    "title": "Locked with Face ID",
+    "body": "A PIN and Face ID guard the app. Your recovery phrase stays in this device's Keychain."
+  },
+  "widget": {
+    "eyebrow": "Widgets",
+    "title": "Your balance, one glance away",
+    "body": "Home Screen and Lock Screen widgets show your USDT without opening the app."
+  },
+  "welcome": {
+    "eyebrow": "No account",
+    "title": "Twelve words. One PIN. Done.",
+    "body": "Create a wallet or restore one with your recovery phrase. Nobody else can move your money."
+  }
+}

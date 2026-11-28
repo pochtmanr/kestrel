@@ -1,0 +1,40 @@
+Kastrel Wallet is a self-custody wallet for USDT on the TRON network (TRC-20). Your recovery phrase and keys are created on your iPhone or iPad and stay there. There is no account to open, no sign-up and nobody holding your funds for you.
+
+YOUR KEYS, ON YOUR DEVICE
+- Create a new wallet in a few taps, or restore one with a 12- or 24-word recovery phrase
+- The recovery phrase is kept in the device Keychain and is never sent to any server
+- A 6-digit PIN and Face ID lock the app
+- Simnetiq Ltd never sees or holds your funds and cannot move them, freeze them or recover them
+
+SEND WITH CARE
+- Paste an address or scan a QR code
+- A review screen shows the recipient, the amount and the network fee before you confirm
+- Clear guidance on TRX network fees: every USDT transfer on TRON burns energy, paid in TRX from your wallet
+- Live status after sending, with the transaction ID and a link to Tronscan
+
+RECEIVE IN SECONDS
+- Your TRON address as a QR code, ready to share
+- Request an exact amount in USDT or TRX
+- Kastrel watches for incoming payments while the screen is open
+- Receiving is free
+
+UNDERSTAND YOUR ACTIVITY
+- Full USDT history, cached on your device
+- Balance and flow charts for 7 days up to all time, with drag-to-scrub
+- Insights: money in, money out, net, fees paid, largest transfers
+- Top counterparties, search and filters by amount, date and address
+
+USDT AND TRX AT A GLANCE
+- Portfolio value with 24-hour change
+- Price charts, market stats and your position for each coin
+- How many transfers your TRX balance can pay for
+
+WIDGETS
+- Home Screen and Lock Screen widgets show your USDT balance without opening the app
+
+GOOD TO KNOW
+- Kastrel Wallet supports USDT (TRC-20) and TRX on TRON only. USDT sent on another network, such as Ethereum or BNB Chain, will be lost
+- Sending USDT needs a small TRX balance for network fees
+- Transfers on the blockchain cannot be reversed. Check the address before you send
+- Keep your recovery phrase offline. It is the only way to restore your wallet, and nobody can recover it for you
+- Kastrel Wallet is a wallet only. It does not buy or sell crypto, offer cards, hold funds or provide investment advice

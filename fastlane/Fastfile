@@ -1,0 +1,167 @@
+# Kestrel Wallet: App Store metadata and screenshots. Nothing here builds, uploads a binary or submits
+# for review. Run from the repo root: `fastlane ios <lane>`. See fastlane/README.md.
+
+# fastlane/README.md is hand-written; don't let fastlane regenerate it after every lane.
+skip_docs
+
+default_platform(:ios)
+
+APP_ID = "com.simnetiq.kestrel".freeze
+# Plain Ruby in a lane runs with cwd = fastlane/, actions with cwd = the repo root. Absolute paths
+# make both agree.
+REPO_ROOT = File.expand_path("..", __dir__).freeze
+
+def repo_path(relative)
+  File.expand_path(relative, REPO_ROOT)
+end
+
+def required_env(name, hint = nil)
+  value = ENV[name].to_s.strip
+  UI.user_error!("#{name} is not set.#{hint ? " #{hint}" : ''}") if value.empty?
+  value
+end
+
+def asc_api_key
+  app_store_connect_api_key(
+    key_id: required_env("ASC_KEY_ID"),
+    issuer_id: required_env("ASC_ISSUER_ID"),
+    key_filepath: File.expand_path(required_env("ASC_KEY_FILEPATH", "Path to the App Store Connect API .p8 key (kept outside the repo)."))
+  )
+end
+
+# The version RECORD name in App Store Connect, which deliver matches on. It is not always
+# MARKETING_VERSION, so there is deliberately no default: a stale default silently writes to the
+# wrong (possibly already released) version.
+def asc_app_version
+  required_env("ASC_APP_VERSION", "Set it to the App Store Connect version record you are editing, e.g. ASC_APP_VERSION=1.0.0.")
+end
+
+# deliver uploads whatever text it finds, so a TODO placeholder would end up on the store page.
+def ensure_no_placeholders!(metadata_path)
+  hits = Dir[File.join(metadata_path, "**", "*.txt")].select { |f| File.read(f).include?("TODO") }
+  UI.user_error!("Placeholder text left in: #{hits.join(', ')}") unless hits.empty?
+end
+
+platform :ios do
+  desc "Upload all metadata (text, URLs, review notes, copyright, category). No screenshots"
+  lane :upload_metadata do
+    ensure_no_placeholders!(repo_path("fastlane/metadata"))
+    deliver(
+      api_key: asc_api_key,
+      app_identifier: APP_ID,
+      platform: "ios",
+      app_version: asc_app_version,
+      metadata_path: repo_path("fastlane/metadata"),
+      skip_binary_upload: true,
+      skip_screenshots: true,
+      force: true,
+      run_precheck_before_submit: false,
+      precheck_include_in_app_purchases: false,
+      submit_for_review: false,
+      automatic_release: false
+    )
+  end
+
+  desc "Upload ONLY promotional text + release notes"
+  # metadata-release-text/ holds nothing but promotional_text.txt and release_notes.txt (symlinks into
+  # metadata/). deliver only pushes fields it finds on disk, so name/description/keywords cannot be
+  # touched by this lane. That absence is the safety mechanism: don't add other files there.
+  lane :upload_release_text do
+    ensure_no_placeholders!(repo_path("fastlane/metadata-release-text"))
+    deliver(
+      api_key: asc_api_key,
+      app_identifier: APP_ID,
+      platform: "ios",
+      app_version: asc_app_version,
+      metadata_path: repo_path("fastlane/metadata-release-text"),
+      skip_binary_upload: true,
+      skip_screenshots: true,
+      force: true,
+      run_precheck_before_submit: false,
+      submit_for_review: false,
+      automatic_release: false
+    )
+  end
+
+  desc "Upload the iPhone 6.9\" and iPad 13\" screenshots for one version"
+  # Source: screenshot-studio export, copied into fastlane/screenshots/<locale>/ by
+  # screenshot-studio/scripts/collect.sh. overwrite_screenshots replaces every screenshot set of the
+  # locales present on disk and leaves other locales alone. No metadata, binary or submission.
+  lane :upload_screenshots do
+    version = asc_app_version
+    path = repo_path(ENV.fetch("SCREENSHOTS_PATH", "fastlane/screenshots"))
+    UI.user_error!("No screenshots at #{path}. Export and run screenshot-studio/scripts/collect.sh first.") unless Dir.exist?(path)
+    deliver(
+      api_key: asc_api_key,
+      app_identifier: APP_ID,
+      platform: "ios",
+      app_version: version,
+      screenshots_path: path,
+      skip_screenshots: false,
+      overwrite_screenshots: true,
+      skip_metadata: true,
+      skip_binary_upload: true,
+      force: true,
+      run_precheck_before_submit: false,
+      submit_for_review: false,
+      automatic_release: false
+    )
+  end
+
+  desc "Upload the iPhone Duo screenshots (APP_IPHONE_DUO), which deliver does not know about"
+  # Replaces the Duo set of each locale found under DUO_PATH (default fastlane/screenshots-duo, filled by
+  # collect.sh) and leaves every other set alone. Files go up in name order, so duo_01_… is first.
+  lane :upload_duo_screenshots do
+    version = asc_app_version
+    root = repo_path(ENV.fetch("DUO_PATH", "fastlane/screenshots-duo"))
+    UI.user_error!("No Duo screenshots at #{root}. Export and run screenshot-studio/scripts/collect.sh first.") unless Dir.exist?(root)
+
+    asc_api_key # sets Spaceship::ConnectAPI.token
+    app = Spaceship::ConnectAPI::App.find(APP_ID)
+    UI.user_error!("No App Store Connect app record for #{APP_ID} yet.") unless app
+    v = app.get_edit_app_store_version(platform: Spaceship::ConnectAPI::Platform::IOS)
+    UI.user_error!("No editable iOS version on App Store Connect.") unless v
+    UI.user_error!("Editable iOS version is #{v.version_string}, not #{version}.") unless v.version_string == version
+
+    localizations = v.get_app_store_version_localizations.to_h { |l| [l.locale, l] }
+    Dir.children(root).sort.each do |locale|
+      files = Dir[File.join(root, locale, "*.{jpg,png}")].sort
+      next if files.empty?
+      loc = localizations[locale]
+      unless loc
+        UI.important("skip #{locale}: no localization on #{version}")
+        next
+      end
+      set = loc.get_app_screenshot_sets.find { |s| s.screenshot_display_type == "APP_IPHONE_DUO" } ||
+            loc.create_app_screenshot_set(attributes: { screenshotDisplayType: "APP_IPHONE_DUO" })
+      set.app_screenshots.to_a.each(&:delete!)
+      files.each { |f| set.upload_screenshot(path: f, wait_for_processing: false) }
+      UI.success("#{locale}: #{files.size} Duo screenshots uploaded")
+    end
+  end
+
+  desc "Download the current metadata from App Store Connect (to fastlane/metadata-downloaded by default)"
+  # deliver has no download option as an action parameter; this is what `fastlane deliver
+  # download_metadata` does. It writes to a separate folder so it can't clobber the local copy by
+  # accident; set DOWNLOAD_PATH=fastlane/metadata to overwrite on purpose.
+  lane :download_metadata do
+    require "deliver"
+    require "deliver/setup"
+    path = repo_path(ENV.fetch("DOWNLOAD_PATH", "fastlane/metadata-downloaded"))
+    FileUtils.mkdir_p(path)
+    options = FastlaneCore::Configuration.create(Deliver::Options.available_options, {
+      api_key: asc_api_key,
+      app_identifier: APP_ID,
+      platform: "ios",
+      metadata_path: path,
+      skip_binary_upload: true,
+      skip_screenshots: true,
+      force: true
+    })
+    Deliver::Runner.new(options) # logs in and finds the app
+    app = Deliver.cache[:app]
+    UI.user_error!("No App Store Connect app record for #{APP_ID} yet.") unless app
+    v = app.get_latest_app_store_version(platform: Spaceship::ConnectAPI::Platform::IOS)
+    Deliver::Setup.new.generate_metadata_files(app, v, path, options)
+  end
+end

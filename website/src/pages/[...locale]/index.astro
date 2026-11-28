@@ -1,0 +1,147 @@
+---
+import Base from '../../layouts/Base.astro';
+import { t, href, site, locales, localeOf } from '../../lib.mjs';
+
+export function getStaticPaths() {
+  return locales.map((l) => ({ params: { locale: l.path || undefined } }));
+}
+
+const locale = localeOf(Astro.params.locale).code;
+const s = t(locale);
+---
+
+<Base locale={locale} title={s.meta.title} description={s.meta.description} nightHeader>
+  <div slot="hero" class="wrap hero-grid">
+    <div>
+      <h1>{s.hero.title}</h1>
+      <p class="hero-body">{s.hero.body}</p>
+      <div class="hero-actions">
+        {
+          site.downloadUrl ? (
+            <a class="button" href={site.downloadUrl}>{s.hero.cta}</a>
+          ) : (
+            <span class="button is-soon">{s.hero.soon}</span>
+          )
+        }
+      </div>
+      <p class="hero-note">{s.hero.note}</p>
+    </div>
+    <div class="phone hero-phone">
+      <img src="/shots/home.webp" width="660" height="1434" alt={s.hero.shotAlt} />
+    </div>
+  </div>
+
+  <section class="section wrap" id="features">
+    <h2 class="section-title">{s.features.title}</h2>
+    <div class="features">
+      {
+        s.features.items.map((f) => (
+          <div class="feature">
+            <div class="feature-stage">
+              <div class="phone">
+                <img src={`/shots/${f.shot}.webp`} width="660" height="1434" alt={f.alt} loading="lazy" />
+              </div>
+            </div>
+            <h3>{f.title}</h3>
+            <p>{f.body}</p>
+          </div>
+        ))
+      }
+    </div>
+  </section>
+
+  <section class="section wrap" id="fees">
+    <h2 class="section-title">{s.fees.title}</h2>
+    <p class="section-intro">{s.fees.intro}</p>
+    <div class="fees-grid">
+      <div class="slip">
+        <p class="slip-title">{s.fees.slipTitle}</p>
+        <dl>
+          {
+            s.fees.rows.map((r) => (
+              <div class:list={['slip-row', { 'is-zero': r.zero }]}>
+                <dt>
+                  {r.label}
+                  {r.note && <span class="slip-note">{r.note}</span>}
+                </dt>
+                <dd>{r.value}</dd>
+              </div>
+            ))
+          }
+        </dl>
+      </div>
+      <ul class="plain-list">
+        {s.fees.notes.map((n) => <li>{n}</li>)}
+      </ul>
+    </div>
+  </section>
+
+  <section class="section wrap" id="custody">
+    <h2 class="section-title">{s.custody.title}</h2>
+    <p class="section-intro">{s.custody.intro}</p>
+    <div class="custody-grid">
+      <div class="ledger">
+        <h3>{s.custody.staysTitle}</h3>
+        <ul class="plain-list">
+          {s.custody.stays.map((i) => <li>{i}</li>)}
+        </ul>
+      </div>
+      <div class="ledger is-out">
+        <h3>{s.custody.leavesTitle}</h3>
+        <ul class="plain-list">
+          {s.custody.leaves.map((i) => <li>{i}</li>)}
+        </ul>
+      </div>
+      <div class="phone">
+        <img src="/shots/security.webp" width="660" height="1434" alt={s.custody.shotAlt} loading="lazy" />
+      </div>
+    </div>
+    <p class="custody-never"><strong>{s.custody.neverTitle}.</strong> {s.custody.never}</p>
+    <a class="text-link" href={href(locale, 'privacy')}>{s.custody.link}</a>
+  </section>
+
+  <section class="section know">
+    <div class="wrap">
+      <h2 class="section-title">{s.know.title}</h2>
+      <dl class="know-list">
+        {
+          s.know.items.map((k) => (
+            <div>
+              <dt>{k.title}</dt>
+              <dd>{k.body}</dd>
+            </div>
+          ))
+        }
+      </dl>
+      <a class="text-link" href={href(locale, 'risks')}>{s.know.link}</a>
+    </div>
+  </section>
+
+  <section class="section wrap" id="faq">
+    <h2 class="section-title">{s.faq.title}</h2>
+    <div class="faq">
+      {
+        s.faq.items.map((f) => (
+          <details>
+            <summary>{f.q}</summary>
+            <p>{f.a}</p>
+          </details>
+        ))
+      }
+    </div>
+  </section>
+
+  <section class="section closing">
+    <div class="wrap">
+      <h2 class="section-title">{s.closing.title}</h2>
+      <p>{s.closing.body}</p>
+      {
+        site.downloadUrl ? (
+          <a class="button" href={site.downloadUrl}>{s.hero.cta}</a>
+        ) : (
+          <span class="button is-soon">{s.hero.soon}</span>
+        )
+      }
+    </div>
+  </section>
+</Base>

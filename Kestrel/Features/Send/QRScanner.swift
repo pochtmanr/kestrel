@@ -86,10 +86,11 @@ struct QRScannerSheet: View {
                     if let url = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(url) }
                 }
                 .buttonStyle(.borderedProminent)
+                .buttonBorderShape(.capsule)
             }
             Button("Paste address") {
                 guard let text = Clipboard.string, !text.isEmpty else {
-                    rejection = String(localized: "There's nothing to paste. Copy an address first.")
+                    rejection = tr("There's nothing to paste. Copy an address first.")
                     return
                 }
                 rejection = onScan(text)
@@ -118,6 +119,9 @@ final class ScannerController: UIViewController, AVCaptureMetadataOutputObjectsD
     private var delivered = false
     /// The last code turned down: the camera sees it many times a second, so it's ignored until another appears.
     private var lastRejected: String?
+    /// Keeps the preview upright as an iPad (or unfolded iPhone) turns.
+    private var rotation: AVCaptureDevice.RotationCoordinator?
+    private var rotationObservation: NSKeyValueObservation?
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -138,8 +142,20 @@ final class ScannerController: UIViewController, AVCaptureMetadataOutputObjectsD
         view.layer.addSublayer(layer)
         previewLayer = layer
 
+        let coordinator = AVCaptureDevice.RotationCoordinator(device: device, previewLayer: layer)
+        rotation = coordinator
+        rotationObservation = coordinator.observe(\.videoRotationAngleForHorizonLevelPreview, options: [.initial, .new]) { [weak self] coordinator, _ in
+            let angle = coordinator.videoRotationAngleForHorizonLevelPreview
+            Task { @MainActor in self?.applyPreviewRotation(angle) }
+        }
+
         let session = self.session
         DispatchQueue.global(qos: .userInitiated).async { session.startRunning() }
+    }
+
+    private func applyPreviewRotation(_ angle: CGFloat) {
+        guard let connection = previewLayer?.connection, connection.isVideoRotationAngleSupported(angle) else { return }
+        connection.videoRotationAngle = angle
     }
 
     override func viewDidLayoutSubviews() {

@@ -7,6 +7,8 @@ enum SharedWallet {
     static let appGroup = Brand.appGroup
     static let widgetKind = "KestrelBalance"
     static let hideBalanceKey = "wallet.hideBalance"
+    /// Transfers the large widget lists.
+    static let recentCount = 4
 
     nonisolated(unsafe) static let defaults: UserDefaults = UserDefaults(suiteName: appGroup) ?? .standard
 
@@ -15,6 +17,9 @@ enum SharedWallet {
         var usdtUnits: UInt64
         var trxSun: Int64
         var updatedAt: Date
+        /// The latest few USDT transfers, for the large widget (public chain data).
+        /// Optional so snapshots saved by older builds still decode.
+        var recent: [TokenTransfer]?
     }
 
     private static let snapshotKey = "wallet.snapshot"

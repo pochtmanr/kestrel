@@ -8,6 +8,7 @@ struct CurrenciesView: View {
     @AppStorage(SharedWallet.hideBalanceKey, store: SharedWallet.defaults) private var hideBalance = false
     @AppStorage("currencies.sort") private var sort: CoinSort = .value
     @State private var query = ""
+    @Environment(\.isSplitShell) private var isSplitShell
 
     private var searching: Bool { !query.trimmingCharacters(in: .whitespaces).isEmpty }
 
@@ -20,12 +21,14 @@ struct CurrenciesView: View {
 
     var body: some View {
         ScrollView {
-            VStack(spacing: Theme.Spacing.l) {
+            // Wide screens: the portfolio beside the coin list.
+            AdaptiveColumns(spacing: Theme.Spacing.l, leadingFraction: 0.45) {
                 if !searching {
                     PortfolioHeader(portfolio: Portfolio(holdings: TokenKind.allCases.map(app.holding(of:)), prices: app.prices),
                                     hasPrices: !app.prices.isEmpty,
                                     hidden: $hideBalance)
                 }
+            } trailing: {
                 if tokens.isEmpty {
                     ContentUnavailableView.search(text: query)
                         .padding(.top, 40)
@@ -36,7 +39,7 @@ struct CurrenciesView: View {
             }
             .padding(.horizontal, Theme.Spacing.screen)
             .padding(.bottom, 24)
-            .readableWidth()
+            .readableWidth(isSplitShell ? 1000 : Theme.Layout.readable)
             .animation(.snappy, value: tokens)
         }
         .scrollDismissesKeyboard(.immediately)
@@ -186,7 +189,7 @@ private struct AllocationBar: View {
             .font(.footnote.weight(.medium).monospacedDigit())
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(hidden ? String(localized: "Allocation hidden")
+        .accessibilityLabel(hidden ? tr("Allocation hidden")
                                    : slices.map { "\($0.token.symbol) \(Self.share($0.share))" }.joined(separator: ", "))
     }
 
@@ -260,11 +263,11 @@ private struct CoinRow: View {
         var parts = [token.symbol]
         if !hidden {
             parts.append(holding.amount)
-            if let value = holding.usdValue(price) { parts.append(String(localized: "about \(USDPrice.format(value))")) }
+            if let value = holding.usdValue(price) { parts.append(tr("about \(USDPrice.format(value))")) }
         }
         if let price {
-            parts.append(String(localized: "price \(USDPrice.price(price.usd))"))
-            if let change = price.change24h { parts.append(String(localized: "\(USDPrice.percent(change)) today")) }
+            parts.append(tr("price \(USDPrice.price(price.usd))"))
+            if let change = price.change24h { parts.append(tr("\(USDPrice.percent(change)) today")) }
         }
         return parts.joined(separator: ", ")
     }

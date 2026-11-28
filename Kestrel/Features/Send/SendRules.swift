@@ -95,17 +95,17 @@ enum RecipientProblem: Equatable {
     var message: String {
         switch self {
         case .ethereumAddress:
-            String(localized: "That looks like an Ethereum address. Kestrel sends USDT on TRON only: TRON addresses start with T.")
+            tr("That looks like an Ethereum address. Kastrel sends USDT on TRON only: TRON addresses start with T.")
         case .invalidCharacters:
-            String(localized: "That isn't a TRON address. It has characters an address can't contain.")
+            tr("That isn't a TRON address. It has characters an address can't contain.")
         case .notTRON:
-            String(localized: "That isn't a TRON address. TRON addresses start with T and are 34 characters long.")
+            tr("That isn't a TRON address. TRON addresses start with T and are 34 characters long.")
         case .checksum:
-            String(localized: "That isn't a valid TRON address. Check it for a typo.")
+            tr("That isn't a valid TRON address. Check it for a typo.")
         case .ownAddress:
-            String(localized: "That's your own address. Enter the address you're sending to.")
+            tr("That's your own address. Enter the address you're sending to.")
         case .tokenContract:
-            String(localized: "That's the USDT token contract, not a wallet. USDT sent there is lost.")
+            tr("That's the USDT token contract, not a wallet. USDT sent there is lost.")
         }
     }
 }
@@ -156,14 +156,14 @@ enum AmountProblem: Equatable {
 
     var message: String {
         switch self {
-        case .malformed: String(localized: "That isn't a valid amount.")
-        case .tooManyDecimals: String(localized: "USDT has at most 6 decimal places.")
-        case .zero: String(localized: "Enter an amount above zero.")
-        case .belowMinimum: String(localized: "The minimum transfer is 1 USDT.")
+        case .malformed: tr("That isn't a valid amount.")
+        case .tooManyDecimals: tr("USDT has at most 6 decimal places.")
+        case .zero: tr("Enter an amount above zero.")
+        case .belowMinimum: tr("The minimum transfer is 1 USDT.")
         case .exceedsBalance(let balance):
-            String(localized: "That's more than your balance of \(USDT.format(units: balance, fractionDigits: balance % 10_000 == 0 ? 2 : 6)) USDT.")
-        case .needsTRX: String(localized: "Not enough TRX for the network fee.")
-        case .balanceUnknown: String(localized: "Checking your balance…")
+            tr("That's more than your balance of \(USDT.format(units: balance, fractionDigits: balance % 10_000 == 0 ? 2 : 6)) USDT.")
+        case .needsTRX: tr("Not enough TRX for the network fee.")
+        case .balanceUnknown: tr("Checking your balance…")
         }
     }
 
@@ -175,8 +175,11 @@ enum AmountRules {
     /// Kept from the first release: below this the fee outweighs the transfer.
     static let minimumUnits: UInt64 = 1_000_000
 
-    /// `usdtUnits` / `trxSun` are nil until the balances have loaded.
-    static func check(_ raw: String, usdtUnits: UInt64?, trxSun: Int64?) -> AmountCheck {
+    /// `usdtUnits` / `trxSun` are nil until the balances have loaded. `feeSun`
+    /// is what the wallet must hold for the fee: the live estimate's required
+    /// figure once there is one, the conservative constant until then.
+    static func check(_ raw: String, usdtUnits: UInt64?, trxSun: Int64?,
+                      feeSun: Int64 = TRX.minimumForTransferSun) -> AmountCheck {
         let text = raw.trimmingCharacters(in: .whitespaces)
         guard !text.isEmpty else { return .empty }
         let parts = text.split(separator: ".", omittingEmptySubsequences: false)
@@ -189,7 +192,7 @@ enum AmountRules {
         if units < minimumUnits { return .problem(.belowMinimum) }
         guard let usdtUnits, let trxSun else { return .problem(.balanceUnknown) }
         if units > usdtUnits { return .problem(.exceedsBalance(usdtUnits)) }
-        if trxSun < TRX.minimumForTransferSun { return .problem(.needsTRX) }
+        if trxSun < feeSun { return .problem(.needsTRX) }
         return .valid(units)
     }
 
@@ -266,7 +269,7 @@ enum SendFailure: Equatable {
         case .http(let code):
             // A 4xx is refused before processing; a 5xx may have been mid-broadcast.
             return (400 ..< 500).contains(code)
-                ? .rejected(String(localized: "The network refused the request (HTTP \(code))."))
+                ? .rejected(tr("The network refused the request (HTTP \(code))."))
                 : .outcomeUnknown
         case .badResponse:
             return .outcomeUnknown
@@ -295,35 +298,35 @@ enum SendFailure: Equatable {
 
     var title: String {
         switch self {
-        case .offline: String(localized: "No connection")
-        case .rateLimited: String(localized: "The network is busy")
-        case .insufficientTRX: String(localized: "Not enough TRX for the fee")
-        case .insufficientUSDT: String(localized: "Not enough USDT")
-        case .rejected: String(localized: "The network declined this transfer")
-        case .outcomeUnknown: String(localized: "We couldn't confirm this transfer")
-        case .walletMissing: String(localized: "Wallet not found")
-        case .unknown: String(localized: "Something went wrong")
+        case .offline: tr("No connection")
+        case .rateLimited: tr("The network is busy")
+        case .insufficientTRX: tr("Not enough TRX for the fee")
+        case .insufficientUSDT: tr("Not enough USDT")
+        case .rejected: tr("The network declined this transfer")
+        case .outcomeUnknown: tr("We couldn't confirm this transfer")
+        case .walletMissing: tr("Wallet not found")
+        case .unknown: tr("Something went wrong")
         }
     }
 
     var message: String {
         switch self {
         case .offline:
-            String(localized: "Kestrel couldn't reach the TRON network. Nothing was sent. Check your connection and try again.")
+            tr("Kastrel couldn't reach the TRON network. Nothing was sent. Check your connection and try again.")
         case .rateLimited:
-            String(localized: "The TRON network turned the request away because of heavy traffic. Nothing was sent. Try again in a few seconds.")
+            tr("The TRON network turned the request away because of heavy traffic. Nothing was sent. Try again in a few seconds.")
         case .insufficientTRX:
-            String(localized: "Every USDT transfer burns about 13–14 TRX of network energy, paid from this wallet. Nothing was sent. Add TRX, then try again.")
+            tr("Every USDT transfer burns about 7–14 TRX of network energy, paid from this wallet. Nothing was sent. Add TRX, then try again.")
         case .insufficientUSDT:
-            String(localized: "Your USDT balance is lower than this amount. Nothing was sent. Choose a smaller amount.")
+            tr("Your USDT balance is lower than this amount. Nothing was sent. Choose a smaller amount.")
         case .rejected:
-            String(localized: "Nothing was sent. You can try again, or change the transfer.")
+            tr("Nothing was sent. You can try again, or change the transfer.")
         case .outcomeUnknown:
-            String(localized: "The network stopped answering after the transfer was sent to it. It may still go through. Check Activity before you send again, so you don't pay twice.")
+            tr("The network stopped answering after the transfer was sent to it. It may still go through. Check Activity before you send again, so you don't pay twice.")
         case .walletMissing:
-            String(localized: "This device doesn't have the wallet's keys. Restore the wallet from its recovery phrase to send.")
+            tr("This device doesn't have the wallet's keys. Restore the wallet from its recovery phrase to send.")
         case .unknown:
-            String(localized: "We can't tell whether the transfer went through. Check Activity before you send again, so you don't pay twice.")
+            tr("We can't tell whether the transfer went through. Check Activity before you send again, so you don't pay twice.")
         }
     }
 

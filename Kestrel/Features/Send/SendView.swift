@@ -22,6 +22,8 @@ struct SendView: View {
     @State private var approving: SendTransfer?
     /// Set once a transfer is submitted: the status screen covers the flow.
     @State private var submission: SendSubmission?
+    /// The live network-fee estimate for the address in the field.
+    @State private var fees = FeeEstimator()
     #if DEBUG
     @State private var debugTRXSun: Int64?
     @State private var debugFailure: SendFailure?
@@ -54,10 +56,29 @@ struct SendView: View {
         return app.trxSun
     }
 
-    private var hasFee: Bool { trxSun >= TRX.minimumForTransferSun }
+    /// The estimate for the address in the field; nil while there's none or
+    /// the field has moved on from the address it was made for.
+    private var feeEstimate: FeeEstimate? {
+        canContinue ? fees.estimate(for: trimmedRecipient) : nil
+    }
+
+    /// What the wallet must hold to send: the estimate's figure, or the
+    /// conservative constant until there is one.
+    private var requiredFeeSun: Int64 { feeEstimate?.requiredSun ?? TRX.minimumForTransferSun }
+
+    private var hasFee: Bool { trxSun >= requiredFeeSun }
+
+    /// An estimate is on its way: "not enough TRX" would be premature.
+    private var feePending: Bool { canContinue && feeEstimate == nil && fees.isLoading }
+
+    private var showsFeeShortfall: Bool { balancesKnown && !hasFee && !feePending }
+
+    /// The recipient to estimate for: empty until the address is valid.
+    private var estimateTarget: String { canContinue ? trimmedRecipient : "" }
 
     private var amountCheck: AmountCheck {
-        AmountRules.check(amount, usdtUnits: balancesKnown ? app.usdtUnits : nil, trxSun: balancesKnown ? trxSun : nil)
+        AmountRules.check(amount, usdtUnits: balancesKnown ? app.usdtUnits : nil, trxSun: balancesKnown ? trxSun : nil,
+                          feeSun: requiredFeeSun)
     }
 
     private var canContinue: Bool { recipientCheck.isValid }
@@ -83,7 +104,7 @@ struct SendView: View {
                 SendStatusView(
                     submission: submission,
                     onDone: { dismiss() },
-                    onRetry: { authorize(SendTransfer(to: submission.to, units: submission.units)) },
+                    onRetry: { authorize(SendTransfer(to: submission.to, units: submission.units, fee: submission.fee)) },
                     onEdit: { closeStatus(then: [Step.amount]) },
                     onReceiveTRX: { closeStatus(then: [Step.amount], route: .receive) },
                     onFees: { closeStatus(then: [Step.amount], route: .fees) },
@@ -116,13 +137,18 @@ struct SendView: View {
             await prices
         }
         .onChange(of: recipient) { _, text in applyRequest(text) }
+        .onChange(of: estimateTarget, initial: true) { _, target in estimateFee(for: target) }
         .sheet(isPresented: $showScanner) {
             QRScannerSheet { scanned in handleScan(scanned) }
         }
         .sheet(isPresented: $showReview) {
-            if let units = amountCheck.units {
-                ReviewTransferSheet(recipient: trimmedRecipient, units: units, authorizing: authorizing) {
-                    authorize(SendTransfer(to: trimmedRecipient, units: units))
+            // The typed amount, even if a fresher estimate has just raised the
+            // fee past the TRX balance: the sheet must not go blank under the user.
+            if let units = amountCheck.units ?? USDT.units(from: amount) {
+                ReviewTransferSheet(recipient: trimmedRecipient, units: units, fees: fees, authorizing: authorizing) {
+                    // Back to the amount step, which says what's missing.
+                    guard canReview else { return showReview = false }
+                    authorize(SendTransfer(to: trimmedRecipient, units: units, fee: feeEstimate))
                 }
             }
         }
@@ -160,8 +186,15 @@ struct SendView: View {
                     Divider().padding(.leading, 16)
                     infoRow("Transfer time", icon: "timer", value: "≈ 1 minute")
                     Divider().padding(.leading, 16)
-                    infoRow("Network fee", icon: "bolt", value: "≈ 13–14 TRX",
-                            warning: balancesKnown && !hasFee ? String(localized: "You have \(TRX.format(sun: trxSun)) TRX") : nil)
+                    infoRow("Network fee", icon: "bolt",
+                            warning: showsFeeShortfall ? tr("You have \(TRX.format(sun: trxSun)) TRX") : nil,
+                            note: feeEstimate?.isFirstTransferToRecipient == true
+                                ? tr("First transfer to this address costs more.") : nil) {
+                        HStack(spacing: 6) {
+                            if canContinue && fees.isLoading { ProgressView().controlSize(.small) }
+                            NetworkFeeText(estimate: feeEstimate)
+                        }
+                    }
                 }
                 .surface(cornerRadius: Theme.Radius.card)
 
@@ -237,7 +270,7 @@ struct SendView: View {
                     .font(.footnote.monospacedDigit())
                     .foregroundStyle(.secondary)
             case .valid:
-                statusLine(String(localized: "Valid TRON address"), icon: "checkmark.circle.fill", color: Theme.Palette.positive)
+                statusLine(tr("Valid TRON address"), icon: "checkmark.circle.fill", color: Theme.Palette.positive)
             case .empty:
                 EmptyView()
             }
@@ -258,13 +291,23 @@ struct SendView: View {
         .foregroundStyle(color)
     }
 
-    private func infoRow(_ title: LocalizedStringKey, icon: String, value: LocalizedStringKey, warning: String? = nil) -> some View {
+    private func infoRow(_ title: LocalizedStringKey, icon: String, value: LocalizedStringKey) -> some View {
+        infoRow(title, icon: icon) { Text(value) }
+    }
+
+    private func infoRow(_ title: LocalizedStringKey, icon: String, warning: String? = nil, note: String? = nil,
+                         @ViewBuilder value: () -> some View) -> some View {
         HStack(spacing: 12) {
             Image(systemName: icon).frame(width: 26).accessibilityHidden(true)
             Text(title).foregroundStyle(.secondary).lineLimit(1).layoutPriority(1)
             Spacer(minLength: 8)
             VStack(alignment: .trailing, spacing: 2) {
-                Text(value)
+                value()
+                if let note {
+                    Text(note).font(.caption).foregroundStyle(.secondary)
+                        .multilineTextAlignment(.trailing)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
                 if let warning { Text(warning).font(.caption).foregroundStyle(Theme.Palette.warning) }
             }
         }
@@ -318,8 +361,9 @@ struct SendView: View {
             }
             Spacer(minLength: 8)
 
-            if balancesKnown && !hasFee {
-                FeeNeededCard(trxSun: trxSun,
+            if showsFeeShortfall {
+                FeeNeededCard(trxSun: trxSun, requiredSun: requiredFeeSun,
+                              firstTransfer: feeEstimate?.isFirstTransferToRecipient == true,
                               onReceive: { path.append(HomeRoute.receive) },
                               onFees: { path.append(HomeRoute.fees) })
                     .padding(.horizontal, Theme.Spacing.screen)
@@ -333,7 +377,8 @@ struct SendView: View {
                         .font(.headline)
                         .frame(minWidth: 64, minHeight: 56)
                         .padding(.horizontal, 4)
-                        .surface(cornerRadius: Theme.Radius.hero)
+                        .surface(in: .capsule)
+                        .contentShape(.capsule)
                 }
                 .buttonStyle(.plain)
                 .disabled(!balancesKnown || app.usdtUnits == 0)
@@ -344,7 +389,9 @@ struct SendView: View {
             .padding(.bottom, 12)
             .readableWidth()
 
+            // Same width as the buttons above it: on iPad a full-width keypad has 400pt keys.
             AmountKeypad(amount: $amount)
+                .readableWidth()
         }
         .background(Theme.Palette.background)
         .navigationBarTitleDisplayMode(.inline)
@@ -395,7 +442,7 @@ struct SendView: View {
 
     private func paste() {
         guard let text = Clipboard.string?.trimmingCharacters(in: .whitespacesAndNewlines), !text.isEmpty else {
-            fieldNote = String(localized: "There's nothing to paste. Copy an address first.")
+            fieldNote = tr("There's nothing to paste. Copy an address first.")
             return
         }
         fieldNote = nil
@@ -409,9 +456,9 @@ struct SendView: View {
         recipient = request.address
         if let requested = request.amount {
             amount = requested
-            fieldNote = String(localized: "Amount from the payment request: \(requested) USDT")
+            fieldNote = tr("Amount from the payment request: \(requested) USDT")
         } else if request.otherToken {
-            fieldNote = String(localized: "This request is for another coin. Enter the USDT amount yourself.")
+            fieldNote = tr("This request is for another coin. Enter the USDT amount yourself.")
         }
     }
 
@@ -424,17 +471,31 @@ struct SendView: View {
             recipient = address
             if let requested = request?.amount {
                 amount = requested
-                fieldNote = String(localized: "Amount from the payment request: \(requested) USDT")
+                fieldNote = tr("Amount from the payment request: \(requested) USDT")
             } else {
                 fieldNote = request?.otherToken == true
-                    ? String(localized: "This request is for another coin. Enter the USDT amount yourself.") : nil
+                    ? tr("This request is for another coin. Enter the USDT amount yourself.") : nil
             }
             showScanner = false
             return nil
         case .problem(let problem) where [.ownAddress, .tokenContract, .ethereumAddress].contains(problem):
             return problem.message
         default:
-            return String(localized: "This QR code isn't a TRON address. Try another code, or paste the address.")
+            return tr("This QR code isn't a TRON address. Try another code, or paste the address.")
+        }
+    }
+
+    // MARK: Network fee
+
+    /// A read-only simulation of the transfer, once the address is valid.
+    private func estimateFee(for target: String) {
+        guard !target.isEmpty, let from = app.address else { return fees.clear() }
+        if app.isDemo {
+            // The demo wallet never touches the network: a typical transfer.
+            fees.show(.make(energyUsed: FeeEstimate.holderEnergy, resources: .none, parameters: .builtIn), for: target)
+        } else {
+            // No amount yet at this step, and the fee barely depends on it.
+            fees.update(from: from, to: target, balance: app.usdtUnits)
         }
     }
 
@@ -447,7 +508,7 @@ struct SendView: View {
         if Biometrics.isEnabled {
             authorizing = true
             Task {
-                let approved = await Biometrics.authenticate(reason: "Confirm sending USDT")
+                let approved = await Biometrics.authenticate(reason: tr("Confirm sending USDT"))
                 authorizing = false
                 if approved {
                     send(transfer)
@@ -468,7 +529,7 @@ struct SendView: View {
         showReview = false
         let started = Date.now
         withAnimation(.snappy) {
-            submission = SendSubmission(to: transfer.to, units: transfer.units, from: app.address ?? "",
+            submission = SendSubmission(to: transfer.to, units: transfer.units, fee: transfer.fee, from: app.address ?? "",
                                         started: started, knownIDs: Set(app.history.map(\.id)), state: .sending)
         }
         let usdtBalance = app.usdtUnits
@@ -526,7 +587,9 @@ struct SendView: View {
         let units: UInt64 = 125_500_000
         let preview = args[index + 1]
         func status(_ state: SendSubmission.State) {
-            submission = SendSubmission(to: to, units: units, from: app.address ?? "", started: .now, knownIDs: [], state: state)
+            submission = SendSubmission(to: to, units: units,
+                                        fee: .make(energyUsed: FeeEstimate.holderEnergy, resources: .none, parameters: .builtIn),
+                                        from: app.address ?? "", started: .now, knownIDs: [], state: state)
         }
         switch preview {
         case "invalid": recipient = "TXJgMdjVX5dKiQaUi9QobwNxtSQaFqccvx"
@@ -571,12 +634,16 @@ private struct DebugSendError: Error { let failure: SendFailure }
 struct SendTransfer: Equatable {
     let to: String
     let units: UInt64
+    /// The fee estimate shown at review, to show again until the real fee is known.
+    var fee: FeeEstimate?
 }
 
 /// A transfer handed to the network, and how it's going.
 struct SendSubmission: Equatable {
     let to: String
     let units: UInt64
+    /// What the fee was expected to be; the receipt replaces it.
+    var fee: FeeEstimate?
     let from: String
     let started: Date
     /// History before the send, so an unclear outcome can spot the new transfer.
@@ -593,6 +660,10 @@ struct SendSubmission: Equatable {
 /// What to do when the TRX balance can't pay the network fee.
 private struct FeeNeededCard: View {
     let trxSun: Int64
+    /// What this transfer needs the wallet to hold.
+    let requiredSun: Int64
+    /// The recipient holds no USDT yet, which is why it needs more.
+    let firstTransfer: Bool
     let onReceive: () -> Void
     let onFees: () -> Void
 
@@ -601,10 +672,16 @@ private struct FeeNeededCard: View {
             Label {
                 VStack(alignment: .leading, spacing: 3) {
                     Text("Add TRX to pay the network fee").font(.subheadline.weight(.semibold))
-                    Text("A USDT transfer burns about 13–14 TRX. You have \(TRX.format(sun: trxSun)) TRX.")
+                    Text("This transfer needs about \(FeeEstimate.trxText(sun: requiredSun)) TRX for the network fee. You have \(TRX.format(sun: trxSun)) TRX.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
+                    if firstTransfer {
+                        Text("First transfer to this address costs more.")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
             } icon: {
                 Image(systemName: "bolt.fill").foregroundStyle(Theme.Palette.warning)
@@ -629,6 +706,27 @@ private struct FeeNeededCard: View {
         }
         .padding(14)
         .surface(cornerRadius: Theme.Radius.card)
+    }
+}
+
+/// The network fee as one line: the estimate when there is one, the
+/// conservative ceiling when the network gave none, the typical range before
+/// there's a recipient to estimate for.
+struct NetworkFeeText: View {
+    let estimate: FeeEstimate?
+
+    var body: some View {
+        Group {
+            switch estimate?.source {
+            case .simulated:
+                Text("≈ \(FeeEstimate.trxText(sun: estimate?.burnSun ?? 0)) TRX")
+            case .fallback:
+                Text("≈ up to \(FeeEstimate.trxText(sun: estimate?.requiredSun ?? 0)) TRX")
+            case nil:
+                Text("≈ \(FeeEstimate.rangeText(FeeEstimate.typicalRange(parameters: TronClient.savedChainFeeParameters))) TRX")
+            }
+        }
+        .monospacedDigit()
     }
 }
 

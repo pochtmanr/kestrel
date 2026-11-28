@@ -2,50 +2,80 @@ import SwiftUI
 
 struct SettingsView: View {
     @Environment(AppModel.self) private var app
+    @Environment(PriceAlertStore.self) private var alerts
     @AppStorage(Appearance.storageKey) private var appearance: Appearance = .system
+    @AppStorage(AppLanguage.storageKey, store: SharedWallet.defaults) private var language: AppLanguage = .system
     @State private var confirmErase = false
     @State private var copied = false
 
+    private var version: String {
+        let info = Bundle.main.infoDictionary
+        return "\(info?["CFBundleShortVersionString"] as? String ?? "") (\(info?["CFBundleVersion"] as? String ?? ""))"
+    }
+
     var body: some View {
         ScrollView {
-            VStack(spacing: 14) {
+            VStack(spacing: 22) {
                 profile
 
-                SettingsGroup {
+                SettingsGroup("Wallet") {
                     NavigationLink { SecuritySettingsView() } label: {
                         SettingsRow(title: "Security", symbol: "lock.fill", color: Theme.Palette.accent)
                     }
+                    SettingsDivider()
+                    NavigationLink(value: HomeRoute.fees) {
+                        SettingsRow(title: "Network fees", symbol: "bolt.fill", color: Theme.Palette.ember,
+                                    value: "\(TRX.format(sun: app.trxSun)) TRX",
+                                    valueColor: app.fuelLevel == .good ? nil : app.fuelLevel.color)
+                    }
                 }
 
-                SettingsGroup {
-                    Menu {
-                        Picker("Theme", selection: $appearance) {
-                            ForEach(Appearance.allCases) { Text($0.title).tag($0) }
-                        }
-                    } label: {
-                        SettingsRow(title: "Appearance", symbol: "moon.fill", color: Theme.Palette.accent, value: appearance.title)
+                SettingsGroup("App settings") {
+                    NavigationLink(value: HomeRoute.appearance) {
+                        SettingsRow(title: "Appearance", symbol: "circle.lefthalf.filled", color: Theme.Palette.accent, value: appearance.title)
                     }
                     SettingsDivider()
-                    NavigationLink { NetworkFeeInfoView() } label: {
-                        SettingsRow(title: "Network fees", symbol: "bolt.fill", color: Theme.Palette.ember, value: "TRX")
+                    NavigationLink(value: HomeRoute.language) {
+                        SettingsRow(title: "Language", symbol: "globe", color: Theme.Palette.accent, value: language.nativeName ?? tr("Device language"))
                     }
                 }
 
-                SettingsGroup {
+                SettingsGroup("About") {
                     NavigationLink { AboutView() } label: {
                         SettingsRow(title: "About \(Brand.name)", logo: true)
                     }
-                }
-
-                SettingsGroup {
-                    Button { confirmErase = true } label: {
-                        SettingsRow(title: "Remove wallet", symbol: "trash.fill", color: Theme.Palette.danger, destructive: true, chevron: false)
+                    if let support = SupportConfig.support {
+                        SettingsDivider()
+                        Link(destination: support) {
+                            SettingsRow(title: "Help & Support", symbol: "questionmark", color: Theme.Palette.accent, external: true)
+                        }
+                    }
+                    if let privacy = SupportConfig.privacy {
+                        SettingsDivider()
+                        Link(destination: privacy) {
+                            SettingsRow(title: "Privacy Policy", symbol: "hand.raised.fill", color: Theme.Palette.accent, external: true)
+                        }
+                    }
+                    if let terms = SupportConfig.terms {
+                        SettingsDivider()
+                        Link(destination: terms) {
+                            SettingsRow(title: "Terms of Service", symbol: "doc.text.fill", color: Theme.Palette.accent, external: true)
+                        }
                     }
                 }
-                Text("Your funds stay on the TRON network. You can restore the wallet later with your recovery phrase.")
+
+                VStack(spacing: 10) {
+                    SettingsGroup {
+                        Button { confirmErase = true } label: {
+                            SettingsRow(title: "Remove wallet", symbol: "trash.fill", color: Theme.Palette.danger, destructive: true, chevron: false)
+                        }
+                    }
+                    SettingsFootnote("Your funds stay on the TRON network. You can restore the wallet later with your recovery phrase.")
+                }
+
+                Text(verbatim: "\(Brand.name) \(version)")
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, 8)
+                    .foregroundStyle(Theme.Palette.textTertiary)
             }
             .buttonStyle(.plain)
             .padding(.horizontal, Theme.Spacing.screen)
@@ -57,7 +87,11 @@ struct SettingsView: View {
         .navigationBarTitleDisplayMode(.large)
         .toolbar(.visible, for: .navigationBar)
         .confirmationDialog("Remove wallet?", isPresented: $confirmErase, titleVisibility: .visible) {
-            Button("Remove wallet", role: .destructive) { app.eraseWallet() }
+            Button("Remove wallet", role: .destructive) {
+                app.eraseWallet()
+                alerts.clear()
+                PriceAlerts.scheduleBackgroundRefresh(store: alerts)
+            }
         } message: {
             Text("Without your recovery phrase the funds can never be recovered. Make sure you've written it down.")
         }
@@ -77,9 +111,11 @@ struct SettingsView: View {
                 WalletBadge(address: app.address ?? "").scaleEffect(1.3).frame(width: 56, height: 56)
                 VStack(alignment: .leading, spacing: 3) {
                     Text("Main wallet").font(.title3.bold())
-                    Text(copied ? "Address copied" : (app.address ?? "").shortAddress)
-                        .font(.subheadline.monospaced())
-                        .foregroundStyle(.secondary)
+                    Group {
+                        if copied { Text("Address copied") } else { Text(verbatim: (app.address ?? "").shortAddress) }
+                    }
+                    .font(.subheadline.monospaced())
+                    .foregroundStyle(.secondary)
                 }
                 Spacer()
                 Image(systemName: copied ? "checkmark" : "doc.on.doc")
@@ -111,11 +147,7 @@ private struct SecuritySettingsView: View {
                         SettingsRow(title: "Show recovery phrase", symbol: "key.horizontal.fill", color: Theme.Palette.ember)
                     }
                 }
-                Text("Your recovery phrase is the only backup of this wallet. Keep it offline.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 8)
+                SettingsFootnote("Your recovery phrase is the only backup of this wallet. Keep it offline.")
 
                 SettingsGroup {
                     if Biometrics.kind != .none {
@@ -159,7 +191,7 @@ private struct SecuritySettingsView: View {
     private func revealPhrase() {
         guard Biometrics.isEnabled else { askPIN = true; return }
         Task {
-            if await Biometrics.authenticate(reason: "Show your recovery phrase") { showPhrase = true } else { askPIN = true }
+            if await Biometrics.authenticate(reason: tr("Show your recovery phrase")) { showPhrase = true } else { askPIN = true }
         }
     }
 
@@ -167,7 +199,7 @@ private struct SecuritySettingsView: View {
         guard on != Biometrics.isEnabled else { return }
         guard on else { Biometrics.isEnabled = false; return }
         Task {
-            if await Biometrics.authenticate(reason: "Enable \(Biometrics.label) for \(Brand.name)") {
+            if await Biometrics.authenticate(reason: tr("Enable \(Biometrics.label) for \(Brand.name)")) {
                 Biometrics.isEnabled = true
             } else {
                 biometricsOn = false
@@ -195,17 +227,6 @@ private struct AboutView: View {
                 }
                 .padding(.top, 12)
 
-                if let terms = SupportConfig.terms, let privacy = SupportConfig.privacy {
-                    SettingsGroup {
-                        Link(destination: terms) {
-                            SettingsRow(title: "Terms of service", symbol: "doc.text.fill", color: Theme.Palette.accent)
-                        }
-                        SettingsDivider()
-                        Link(destination: privacy) {
-                            SettingsRow(title: "Privacy policy", symbol: "hand.raised.fill", color: Theme.Palette.accent)
-                        }
-                    }
-                }
                 Text("A self-custody wallet: your keys never leave this device.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
@@ -223,21 +244,51 @@ private struct AboutView: View {
 
 // MARK: - Pieces
 
-/// A rounded group of rows, like the system's inset-grouped list.
-private struct SettingsGroup<Content: View>: View {
+/// A rounded group of rows, like the system's inset-grouped list, under an
+/// optional small heading.
+struct SettingsGroup<Content: View>: View {
+    var title: LocalizedStringKey?
     @ViewBuilder let content: Content
 
+    init(_ title: LocalizedStringKey? = nil, @ViewBuilder content: () -> Content) {
+        self.title = title
+        self.content = content()
+    }
+
     var body: some View {
-        VStack(spacing: 0) { content }.surface(cornerRadius: Theme.Radius.tile)
+        VStack(alignment: .leading, spacing: 8) {
+            if let title {
+                Text(title)
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(Theme.Palette.textSecondary)
+                    .padding(.horizontal, 16)
+                    .accessibilityAddTraits(.isHeader)
+            }
+            VStack(spacing: 0) { content }.surface(cornerRadius: Theme.Radius.tile)
+        }
     }
 }
 
-private struct SettingsDivider: View {
+struct SettingsDivider: View {
     var body: some View { Divider().padding(.leading, 62) }
 }
 
+/// The small explanation under a group.
+struct SettingsFootnote: View {
+    let text: LocalizedStringKey
+    init(_ text: LocalizedStringKey) { self.text = text }
+
+    var body: some View {
+        Text(text)
+            .font(.footnote)
+            .foregroundStyle(Theme.Palette.textSecondary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 16)
+    }
+}
+
 /// The coloured rounded-square icon at the start of a row.
-private struct SettingsIcon: View {
+struct SettingsIcon: View {
     let symbol: String
     let color: Color
 
@@ -250,14 +301,17 @@ private struct SettingsIcon: View {
     }
 }
 
-private struct SettingsRow: View {
+struct SettingsRow: View {
     let title: LocalizedStringKey
     var symbol = ""
     var color: Color = Theme.Palette.accent
     var logo = false
     var value: String?
+    var valueColor: Color?
     var destructive = false
     var chevron = true
+    /// Opens outside the app (a web page): an arrow instead of the push chevron.
+    var external = false
 
     var body: some View {
         HStack(spacing: 14) {
@@ -271,8 +325,12 @@ private struct SettingsRow: View {
             }
             Text(title).foregroundStyle(destructive ? Theme.Palette.danger : Color.primary).lineLimit(1).minimumScaleFactor(0.85)
             Spacer()
-            if let value { Text(value).foregroundStyle(.secondary) }
-            if chevron {
+            if let value {
+                Text(verbatim: value).foregroundStyle(valueColor ?? Theme.Palette.textSecondary).lineLimit(1)
+            }
+            if external {
+                Image(systemName: "arrow.up.right").font(.subheadline.weight(.semibold)).foregroundStyle(.tertiary)
+            } else if chevron {
                 Image(systemName: "chevron.right").font(.subheadline.weight(.semibold)).foregroundStyle(.tertiary)
             }
         }
@@ -287,6 +345,11 @@ private struct RecoveryPhraseSheet: View {
     @State private var phrase = WalletVault.mnemonic() ?? ""
 
     var body: some View {
+        // iPad: a centred card, not a page-wide sheet.
+        content.formSheetSizing()
+    }
+
+    private var content: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {

@@ -4,10 +4,14 @@
 <dict>
 	<key>AppGroup</key>
 	<string>group.com.simnetiq.kestrel</string>
+	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<array>
+		<string>com.simnetiq.kestrel.price-alerts</string>
+	</array>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Kestrel</string>
+	<string>Kastrel</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -38,14 +42,18 @@
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.finance</string>
 	<key>NSCameraUsageDescription</key>
-	<string>Kestrel uses the camera to scan a wallet address QR code.</string>
+	<string>Kastrel uses the camera to scan a wallet address QR code.</string>
 	<key>NSFaceIDUsageDescription</key>
-	<string>Kestrel uses Face ID to unlock the app and confirm transfers.</string>
+	<string>Kastrel uses Face ID to unlock the app and confirm transfers.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
 		<false/>
 	</dict>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>fetch</string>
+	</array>
 	<key>UILaunchScreen</key>
 	<dict>
 		<key>UIColorName</key>

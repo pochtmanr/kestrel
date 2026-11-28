@@ -1,0 +1,1 @@
+The first release of Kastrel Wallet: a self-custody USDT wallet on TRON. Create or restore a wallet, send and receive USDT and TRX, follow your activity with charts and insights, check USDT and TRX prices, and keep your balance on the Home Screen and Lock Screen with widgets.

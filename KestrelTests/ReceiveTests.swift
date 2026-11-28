@@ -74,6 +74,51 @@ final class ReceiveTests: XCTestCase {
         XCTAssertEqual(ReceiveLogic.addressGroups(""), [])
     }
 
+    // MARK: Request outcome
+
+    func testOutcomeExactOverShort() {
+        XCTAssertEqual(ReceiveLogic.outcome(paymentToken: .usdt, paymentUnits: 50_000_000,
+                                            selectedToken: .usdt, requestedUnits: 50_000_000), .exact)
+        XCTAssertEqual(ReceiveLogic.outcome(paymentToken: .usdt, paymentUnits: 52_500_000,
+                                            selectedToken: .usdt, requestedUnits: 50_000_000), .over(by: 2_500_000))
+        XCTAssertEqual(ReceiveLogic.outcome(paymentToken: .usdt, paymentUnits: 30_000_000,
+                                            selectedToken: .usdt, requestedUnits: 50_000_000), .short(by: 20_000_000))
+        XCTAssertEqual(ReceiveLogic.outcome(paymentToken: .trx, paymentUnits: 25_000_000,
+                                            selectedToken: .trx, requestedUnits: 25_000_000), .exact)
+    }
+
+    func testOutcomeWithoutARequestIsUnrelated() {
+        XCTAssertEqual(ReceiveLogic.outcome(paymentToken: .usdt, paymentUnits: 50_000_000,
+                                            selectedToken: .usdt, requestedUnits: nil), .unrelated)
+        XCTAssertEqual(ReceiveLogic.outcome(paymentToken: .usdt, paymentUnits: 50_000_000,
+                                            selectedToken: .usdt, requestedUnits: 0), .unrelated)
+    }
+
+    func testOutcomeForTheOtherCoinIsUnrelated() {
+        XCTAssertEqual(ReceiveLogic.outcome(paymentToken: .usdt, paymentUnits: 10_000_000,
+                                            selectedToken: .trx, requestedUnits: 25_000_000), .unrelated)
+        XCTAssertEqual(ReceiveLogic.outcome(paymentToken: .trx, paymentUnits: 99_000_000,
+                                            selectedToken: .usdt, requestedUnits: 25_000_000), .unrelated)
+    }
+
+    /// 25 TRX and 25 USDT are the same number of units; a TRX top-up must not
+    /// read as the 25 USDT that was asked for.
+    func testSameUnitsInTheOtherCoinNeverMatch() {
+        XCTAssertEqual(ReceiveLogic.outcome(paymentToken: .trx, paymentUnits: 25_000_000,
+                                            selectedToken: .usdt, requestedUnits: 25_000_000), .unrelated)
+        XCTAssertEqual(ReceiveLogic.outcome(paymentToken: .usdt, paymentUnits: 25_000_000,
+                                            selectedToken: .trx, requestedUnits: 25_000_000), .unrelated)
+    }
+
+    func testCelebratedPaymentAnswersTheRequestElseIsTheNewest() {
+        XCTAssertNil(ReceiveLogic.celebratedIndex([]))
+        XCTAssertEqual(ReceiveLogic.celebratedIndex([.unrelated, .unrelated]), 0, "newest first")
+        XCTAssertEqual(ReceiveLogic.celebratedIndex([.unrelated, .exact, .unrelated]), 1)
+        XCTAssertEqual(ReceiveLogic.celebratedIndex([.short(by: 1), .over(by: 1), .exact]), 2)
+        XCTAssertEqual(ReceiveLogic.celebratedIndex([.unrelated, .short(by: 5), .over(by: 1)]), 2)
+        XCTAssertEqual(ReceiveLogic.celebratedIndex([.unrelated, .short(by: 5), .short(by: 1)]), 1, "ties keep the newer")
+    }
+
     // MARK: Incoming detection
 
     private func transfer(_ id: String, from: String, to: String, units: UInt64 = 1_000_000, age: TimeInterval = 0) -> TokenTransfer {

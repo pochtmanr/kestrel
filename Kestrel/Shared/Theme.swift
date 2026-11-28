@@ -93,6 +93,19 @@ enum Theme {
         static let xl: CGFloat = 24
     }
 
+    /// Widths for wide screens (iPad, an unfolded iPhone): how far content
+    /// may stretch before it splits into columns or stops growing.
+    enum Layout {
+        /// One column of forms, cards and text.
+        static let readable: CGFloat = 560
+        /// A two-column dashboard stops growing here.
+        static let wideContent: CGFloat = 1120
+        /// Below this container width, two-column screens fall back to one column.
+        static let twoColumnMinWidth: CGFloat = 720
+        /// Space between side-by-side columns.
+        static let columnGap: CGFloat = 20
+    }
+
     enum Typography {
         /// Design for balances and amounts.
         static let numeric: Font.Design = .rounded

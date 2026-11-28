@@ -1,15 +1,18 @@
 import SwiftUI
 import WebKit
 
-/// Support and legal links. TODO(Simnetiq): fill these in once the Chatwoot
-/// instance and the support/privacy pages exist. While the Chatwoot values are
-/// empty the support button stays hidden; while a URL is nil its row is hidden.
+/// Support and legal links. The pages are built from `website/` in this repo.
+/// TODO(Simnetiq): fill in the Chatwoot values once the instance exists, and
+/// update the site's privacy policy before switching the chat on. While those
+/// are empty the support chat button stays hidden; while a URL is nil its row is hidden.
 enum SupportConfig {
     static let chatwootBaseURL: URL? = nil
     /// Public website-inbox token (it's embedded in every chat widget page).
     static let chatwootWebsiteToken = ""
-    static let terms: URL? = nil
-    static let privacy: URL? = nil
+    private static let site = "https://kastrel.xyz"
+    static let terms = URL(string: "\(site)/terms")
+    static let privacy = URL(string: "\(site)/privacy")
+    static let support = URL(string: "\(site)/support")
 
     static var isChatConfigured: Bool { chatwootBaseURL != nil && !chatwootWebsiteToken.isEmpty }
 }
@@ -24,6 +27,7 @@ struct SupportChatSheet: View {
         ChatwootWebView(onClose: { dismiss() })
             .ignoresSafeArea(edges: .bottom)
             .background(Theme.Palette.background)
+            .formSheetSizing()
     }
 }
 

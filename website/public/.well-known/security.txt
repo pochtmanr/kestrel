@@ -1,0 +1,5 @@
+Contact: mailto:security@kastrel.xyz
+Expires: 2027-11-27T00:00:00.000Z
+Preferred-Languages: en, ru, zh
+Canonical: https://kastrel.xyz/.well-known/security.txt
+Policy: https://kastrel.xyz/security/

@@ -219,7 +219,7 @@ struct ActivityChart: View {
 
     /// "Now" for the live end of the line, otherwise the day.
     static func pointLabel(_ point: BalancePoint, isNow: Bool) -> String {
-        isNow ? String(localized: "Now") : point.date.formatted(.dateTime.day().month(.abbreviated).year())
+        isNow ? tr("Now") : point.date.formatted(.dateTime.day().month(.abbreviated).year())
     }
 
     /// The period one bucket covers: a day, "Week of 3 Nov", or a month.
@@ -229,7 +229,7 @@ struct ActivityChart: View {
             return bucket.start.formatted(.dateTime.weekday(.abbreviated).day().month(.abbreviated))
         case .weekOfYear:
             let day = bucket.start.formatted(.dateTime.day().month(.abbreviated))
-            return String(localized: "Week of \(day)")
+            return tr("Week of \(day)")
         default:
             return bucket.start.formatted(.dateTime.month(.wide).year())
         }
@@ -242,11 +242,11 @@ struct ActivityChart: View {
         case .balance:
             let start = USDT.format(units: series.startUnits)
             let end = USDT.format(units: series.endUnits)
-            return String(localized: "Balance chart, from \(start) to \(end) USDT")
+            return tr("Balance chart, from \(start) to \(end) USDT")
         case .flow:
             let inflow = USDT.format(units: buckets.reduce(0) { $0 + $1.inflow })
             let outflow = USDT.format(units: buckets.reduce(0) { $0 + $1.outflow })
-            return String(localized: "Flow chart, \(inflow) USDT in and \(outflow) USDT out")
+            return tr("Flow chart, \(inflow) USDT in and \(outflow) USDT out")
         }
     }
 
@@ -255,16 +255,16 @@ struct ActivityChart: View {
         case .balance:
             let last = series.points.last?.date
             return ActivityChartDescriptor(
-                title: String(localized: "Balance"),
+                title: tr("Balance"),
                 labels: series.points.map { Self.pointLabel($0, isNow: $0.date == last) },
-                series: [(String(localized: "Balance"), series.points.map(\.usdt))],
+                series: [(tr("Balance"), series.points.map(\.usdt))],
                 continuous: true)
         case .flow:
             return ActivityChartDescriptor(
-                title: String(localized: "Flow"),
+                title: tr("Flow"),
                 labels: buckets.map { Self.bucketLabel($0, timeframe: timeframe) },
-                series: [(String(localized: "In"), buckets.map(\.inflowUSDT)),
-                         (String(localized: "Out"), buckets.map(\.outflowUSDT))],
+                series: [(tr("In"), buckets.map(\.inflowUSDT)),
+                         (tr("Out"), buckets.map(\.outflowUSDT))],
                 continuous: false)
         }
     }
@@ -305,7 +305,7 @@ private struct ActivityChartDescriptor: AXChartDescriptorRepresentable {
         // Labels can repeat (two "Nov" months in "All"), so categories are deduplicated.
         var seen = Set<String>()
         let categories = labels.filter { seen.insert($0).inserted }
-        let xAxis = AXCategoricalDataAxisDescriptor(title: String(localized: "Date"), categoryOrder: categories)
+        let xAxis = AXCategoricalDataAxisDescriptor(title: tr("Date"), categoryOrder: categories)
         let yAxis = AXNumericDataAxisDescriptor(title: "USDT", range: low ... high, gridlinePositions: []) { value in
             "\(USDT.format(units: UInt64(max(value, 0) * 1_000_000))) USDT"
         }

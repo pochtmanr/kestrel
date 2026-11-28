@@ -4,10 +4,12 @@ import WidgetKit
 
 /// Screens the home (and the coin screens) push.
 enum HomeRoute: Hashable {
-    case receive, fees, settings, currencies
+    case receive, fees, settings, currencies, appearance, language
     case coin(TokenKind)
     /// Receive opened for a specific coin (TRX from "Add TRX"); `.receive` is USDT.
     case receiveToken(TokenKind)
+    /// One coin's price alerts, from its coin screen.
+    case alerts(TokenKind)
 }
 
 /// Where a `HomeRoute` leads. Pushed screens are full pages: the tab bar
@@ -22,8 +24,11 @@ struct RouteDestination: View {
             case .fees: NetworkFeeInfoView()
             case .settings: SettingsView()
             case .currencies: CurrenciesView()
+            case .appearance: AppearanceView()
+            case .language: LanguagePickerView()
             case .coin(let token): CoinDetailView(token: token)
             case .receiveToken(let token): DepositView(token: token)
+            case .alerts(let token): PriceAlertsView(token: token)
             }
         }
         .toolbar(.hidden, for: .tabBar)
@@ -38,35 +43,47 @@ struct WalletView: View {
 
     @Environment(AppModel.self) private var app
     @Environment(\.dynamicTypeSize) private var typeSize
+    @Environment(\.isSplitShell) private var isSplitShell
     @AppStorage(SharedWallet.hideBalanceKey, store: SharedWallet.defaults) private var hideBalance = false
     @State private var copied = false
     @State private var showSupport = false
     @State private var detail: TokenTransfer?
     @State private var path: [HomeRoute] = []
     #if DEBUG
-    /// `onAppear` fires again on every pop back to home; the launch route must apply once.
-    @State private var debugRouteApplied = false
+    /// `onAppear` fires again on every pop back to home, and the wide layout
+    /// rebuilds the home per section: the launch route must apply once per launch.
+    @MainActor private static var debugRouteApplied = false
     #endif
     static let sendZoomID = "send"
+    private static var keepsBarForSidebarToggle: Bool {
+        if #available(iOS 18, *) { false } else { true }
+    }
 
     var body: some View {
         NavigationStack(path: $path) {
             ScrollView {
                 VStack(spacing: 14) {
-                    header
-                    balance
-                    primaryCards
-                    activityCard
-                    currenciesCard
+                    // Wide screens: the tab bar carries the wallet and Settings, so the row is only the support button.
+                    if !isSplitShell || SupportConfig.isChatConfigured { header }
+                    // Wide screens: balance and actions beside activity and coins.
+                    AdaptiveColumns(leadingFraction: 0.5) {
+                        balance
+                        primaryCards
+                        if isSplitShell { currenciesCard }
+                    } trailing: {
+                        activityCard
+                        if !isSplitShell { currenciesCard }
+                    }
                 }
                 .padding(.horizontal, Theme.Spacing.screen)
                 .padding(.bottom, 24)
-                .readableWidth()
+                .readableWidth(isSplitShell ? Theme.Layout.wideContent : Theme.Layout.readable)
             }
             .scrollIndicators(.hidden)
             .background(Theme.Palette.background)
             .background(alignment: .top) { accentGlow }
-            .toolbar(.hidden, for: .navigationBar)
+            // iOS 17's sidebar toggle lives in this bar: hiding it there strands the sidebar.
+            .toolbar(Self.keepsBarForSidebarToggle && isSplitShell ? .visible : .hidden, for: .navigationBar)
             .navigationDestination(for: HomeRoute.self) { route in
                 RouteDestination(route: route).zoomDestination(id: route, in: zoom)
             }
@@ -112,7 +129,8 @@ struct WalletView: View {
     /// so the balance owns the top of the screen; the menu keeps it one tap away.
     private var header: some View {
         HStack(spacing: 12) {
-            walletMenu
+            // The sidebar carries the wallet and Settings on wide screens.
+            if !isSplitShell { walletMenu }
             Spacer(minLength: 8)
             SupportButton { showSupport = true }
         }
@@ -133,7 +151,7 @@ struct WalletView: View {
             }
             Button {
                 Haptics.tap()
-                path.append(.settings)
+                open(.settings)
             } label: {
                 Label("Settings", systemImage: "gearshape")
             }
@@ -229,7 +247,7 @@ struct WalletView: View {
 
             Button {
                 Haptics.tap()
-                path.append(.receive)
+                open(.receive)
             } label: {
                 ActionCardLabel(title: "Receive", subtitle: "TRON · TRC-20", symbol: "arrow.down.left", prominent: false, seed: 23)
             }
@@ -294,15 +312,15 @@ struct WalletView: View {
     }
 
     private var activityLabel: String {
-        guard let last = app.history.first else { return String(localized: "Activity. No activity yet") }
+        guard let last = app.history.first else { return tr("Activity. No activity yet") }
         let outgoing = last.from == app.address
         let when = last.date.formatted(.relative(presentation: .named))
         if hideBalance {
-            return outgoing ? String(localized: "Activity. Last: sent \(when)") : String(localized: "Activity. Last: received \(when)")
+            return outgoing ? tr("Activity. Last: sent \(when)") : tr("Activity. Last: received \(when)")
         }
         let amount = USDT.format(units: last.units)
-        return outgoing ? String(localized: "Activity. Last: sent \(amount) USDT \(when)")
-                        : String(localized: "Activity. Last: received \(amount) USDT \(when)")
+        return outgoing ? tr("Activity. Last: sent \(amount) USDT \(when)")
+                        : tr("Activity. Last: received \(amount) USDT \(when)")
     }
 
     // MARK: Currencies
@@ -312,7 +330,7 @@ struct WalletView: View {
         VStack(alignment: .leading, spacing: 0) {
             Button {
                 Haptics.tap()
-                path.append(.currencies)
+                open(.currencies)
             } label: {
                 HStack {
                     Text("Currencies")
@@ -384,37 +402,55 @@ struct WalletView: View {
         if hideBalance { return token.symbol }
         guard let price = app.prices[token] else { return "\(amount) \(token.symbol)" }
         let usd = USDPrice.format(value * price.usd)
-        return String(localized: "\(amount) \(token.symbol), about \(usd)")
+        return tr("\(amount) \(token.symbol), about \(usd)")
     }
 
     // MARK: Actions
 
     #if DEBUG
-    /// `-route receive|activity|currencies|fees|settings|send|coin-usdt|coin-trx` opens a screen at launch (screenshots, UI checks).
+    /// `-route receive|activity|currencies|fees|settings|appearance|language|send|transfer|coin-usdt|coin-trx` opens a screen at launch
+    /// (screenshots, UI checks). `-route lock` is handled by `AppModel.loadDemo`.
     private func openDebugRoute() {
-        guard !debugRouteApplied else { return }
-        debugRouteApplied = true
+        guard !Self.debugRouteApplied else { return }
+        Self.debugRouteApplied = true
         let args = CommandLine.arguments
         guard let index = args.firstIndex(of: "-route"), args.indices.contains(index + 1) else { return }
         switch args[index + 1] {
-        case "receive": path = [.receive]
+        case "receive": open(.receive)
         case "activity": app.selectedTab = .activity
-        case "currencies": path = [.currencies]
+        case "currencies": open(.currencies)
         case "fees": path = [.fees]
-        case "settings": path = [.settings]
+        case "appearance": path = [.appearance]
+        case "language": path = [.language]
+        case "settings": open(.settings)
         case "send": app.sendRequest = .init()
+        case "transfer": detail = app.history.first
         case let route where route.hasPrefix("coin-"):
-            if let token = TokenKind(rawValue: String(route.dropFirst(5))) { path = [.coin(token)] }
+            if let token = TokenKind(rawValue: String(route.dropFirst(5))) {
+                // `-coin-alerts`: straight to that coin's price alerts.
+                path = args.contains("-coin-alerts") ? [.coin(token), .alerts(token)] : [.coin(token)]
+            }
         default: break
         }
     }
     #endif
 
+    /// A pushed screen on iPhone; its own sidebar section on wide screens.
+    private func open(_ route: HomeRoute) {
+        guard isSplitShell else { return path.append(route) }
+        switch route {
+        case .receive: app.selectedTab = .receive
+        case .currencies: app.selectedTab = .currencies
+        case .settings: app.selectedTab = .settings
+        default: path.append(route)
+        }
+    }
+
     private func copyAddress() {
         guard let address = app.address else { return }
         Clipboard.copy(address)
         withAnimation(.snappy) { copied = true }
-        AccessibilityNotification.Announcement(String(localized: "Address copied")).post()
+        AccessibilityNotification.Announcement(tr("Address copied")).post()
         Task {
             try? await Task.sleep(for: .seconds(1.5))
             withAnimation(.snappy) { copied = false }
@@ -731,7 +767,7 @@ struct TransferRow: View {
                 .foregroundStyle(tint)
             VStack(alignment: .leading, spacing: 2) {
                 Text(outgoing ? "Sent" : "Received").font(.body.weight(.medium))
-                Text("\(outgoing ? "To" : "From") \((outgoing ? transfer.to : transfer.from).shortAddress)")
+                Text(outgoing ? "To \(transfer.to.shortAddress)" : "From \(transfer.from.shortAddress)")
                     .font(.caption.monospaced())
                     .foregroundStyle(.secondary)
                 if outgoing, !hideAmount, let feeSun {
@@ -788,28 +824,33 @@ struct TransferDetailView: View {
     }
 
     var body: some View {
+        // iPad: a centred card, not a page-wide sheet.
+        content.formSheetSizing()
+    }
+
+    private var content: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 14) {
                     header
                     addressPanel
                     group {
-                        actionRow(note.isEmpty ? "Add note" : note, icon: "pencil", secondary: !note.isEmpty) {
+                        actionRow(note.isEmpty ? tr("Add note") : note, icon: "pencil", secondary: !note.isEmpty) {
                             noteDraft = note
                             editingNote = true
                         }
                     }
                     group {
                         if outgoing {
-                            actionRow("Repeat payment", icon: "arrow.clockwise") { onRepeat(transfer.to) }
+                            actionRow(tr("Repeat payment"), icon: "arrow.clockwise") { onRepeat(transfer.to) }
                             Divider().padding(.leading, 56)
                         }
                         ShareLink(item: tronscan, message: Text(shareText)) {
-                            rowLabel("Share", icon: "square.and.arrow.up")
+                            rowLabel(tr("Share"), icon: "square.and.arrow.up")
                         }
                         .buttonStyle(.plain)
                         Divider().padding(.leading, 56)
-                        actionRow("Contact support", icon: "headphones") { showSupport = true }
+                        actionRow(tr("Contact support"), icon: "headphones") { showSupport = true }
                     }
                 }
                 .padding(.horizontal, Theme.Spacing.screen)
@@ -909,7 +950,7 @@ struct TransferDetailView: View {
 
     private var addressPanel: some View {
         group {
-            copyRow(outgoing ? "Receive address" : "Sender address", counterparty)
+            copyRow(outgoing ? tr("Receive address") : tr("Sender address"), counterparty)
             if outgoing, let fee = app.activity.fees[transfer.id] {
                 Divider().padding(.leading, 16)
                 feeRow(fee)
@@ -933,11 +974,11 @@ struct TransferDetailView: View {
             .buttonStyle(.plain)
             if showMore {
                 Divider().padding(.leading, 16)
-                infoRow("Network", "TRON · TRC20")
+                infoRow(tr("Network"), "TRON · TRC20")
                 Divider().padding(.leading, 16)
-                copyRow("Your address", myAddress)
+                copyRow(tr("Your address"), myAddress)
                 Divider().padding(.leading, 16)
-                copyRow("Transaction ID", transfer.id)
+                copyRow(tr("Transaction ID"), transfer.id)
                 Divider().padding(.leading, 16)
                 Link(destination: tronscan) {
                     HStack {
@@ -1034,31 +1075,9 @@ struct TransferDetailView: View {
     }
 
     private var shareText: String {
-        "\(outgoing ? "Sent" : "Received") \(amount) USDT (TRON) \(outgoing ? "to" : "from") \(counterparty) on \(transfer.date.formatted(date: .abbreviated, time: .shortened))"
-    }
-}
-
-struct NetworkFeeInfoView: View {
-    @Environment(AppModel.self) private var app
-
-    var body: some View {
-        List {
-            Section {
-                Text("Every USDT transfer on TRON burns network energy, paid in TRX from this wallet — about 13–14 TRX when you have no staked energy. Receiving USDT is free.")
-            }
-            Section("To add TRX") {
-                Text("Send TRX on the TRON network to your wallet address from any exchange or wallet.")
-                if let address = app.address {
-                    Button {
-                        Clipboard.copy(address)
-                    } label: {
-                        Label("Copy my address", systemImage: "doc.on.doc")
-                    }
-                }
-            }
-        }
-        .navigationTitle("Network fees")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar(.visible, for: .navigationBar)
+        let date = transfer.date.formatted(Date.FormatStyle(date: .abbreviated, time: .shortened).locale(AppLanguage.current.locale ?? .current))
+        return outgoing
+            ? tr("Sent \(amount) USDT (TRON) to \(counterparty) on \(date)")
+            : tr("Received \(amount) USDT (TRON) from \(counterparty) on \(date)")
     }
 }

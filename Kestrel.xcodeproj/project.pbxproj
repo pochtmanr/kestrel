@@ -8,32 +8,42 @@
 
 /* Begin PBXBuildFile section */
 		078DCD31C3DA0B0D43511F25 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C86812910E4263136C0447A8 /* Assets.xcassets */; };
+		0A91BCB574E7436567890263 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = F77A42F6D166FE6C628942B7 /* Localizable.xcstrings */; };
 		0D06C2383C56C053377DC708 /* SharedWallet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33F00C185E7B4218571870D1 /* SharedWallet.swift */; };
 		0D3592FC1B38BC2238E9DF94 /* ActivityAnalytics.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4F9467DE1612D92619CA400 /* ActivityAnalytics.swift */; };
 		1190C154F16D6E8DB4D1885D /* SplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AB600FF471FD9144C472886 /* SplashView.swift */; };
 		1628DFF18C45874717686DDF /* TronAddress.swift in Sources */ = {isa = PBXBuildFile; fileRef = 800D6437CFE437B1AFE9CB76 /* TronAddress.swift */; };
 		1636894D015544EB034CA686 /* Brand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1AC3E19AB724C54687F7A389 /* Brand.swift */; };
 		180DE674C77608F98F88CA85 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B2AE3FC86AFDE62828E8970 /* SettingsView.swift */; };
+		1A005A67FDAE865FD221EE39 /* AppearanceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 767FAD02BDF8ED89E5D6D868 /* AppearanceView.swift */; };
 		1CFD8BFC083371F246CD1B12 /* bip39-english.txt in Resources */ = {isa = PBXBuildFile; fileRef = EFA5C8FC3AC1AA63C88B67D9 /* bip39-english.txt */; };
 		1E9C9B368C86665BF6B70797 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = CF0E428BECE0112A2581E2F6 /* PrivacyInfo.xcprivacy */; };
 		210DDC988B6C8B9EFB148F88 /* WalletView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 508912270C486821A59D6735 /* WalletView.swift */; };
+		24C4FBA2F5EB69DF3EEADBAA /* PriceChartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2792E6EC8E4B906E2DC0F61A /* PriceChartView.swift */; };
 		26A5240D53A7993DCE451BCA /* Kestrel.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AA86DA234269F299B6D28F2D /* Kestrel.xcassets */; };
 		27CC52CA350C2CA3E6D6C26A /* CryptoVectorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D7DF4AAA3D4E6854CD9865D /* CryptoVectorTests.swift */; };
 		2CE5D1A3C7324E10FB26FCC9 /* ActivityAnalyticsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6007C2C996095D5A5F0EAB68 /* ActivityAnalyticsTests.swift */; };
 		2E356CDE81FC7E070C0CFAC1 /* ReceiveTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE3A0C5ECD611CE2C75DEE4E /* ReceiveTests.swift */; };
 		2FBFFC0569A1E28A9BB36469 /* CoinDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C911B1A47702DF06FE58CB81 /* CoinDetailView.swift */; };
+		317EF439089EEE5F9050B184 /* MainSplitView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97C1C02EB74967623C731C0F /* MainSplitView.swift */; };
+		32AB311731F9280FD5240B31 /* ChartCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01D60721BECAE7C59AA58A5F /* ChartCache.swift */; };
 		34E7538121FB92193A66D181 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = BA6CB0658110CB3F1869FDBD /* Assets.xcassets */; };
 		35B4ACDA20C3494E1A09A2CA /* PinViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5852A34D65FDCEC55E7F1619 /* PinViews.swift */; };
 		3A7A61CD9E3BE288D3107279 /* SupportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8CE21BC12769E95B4C84CD2A /* SupportView.swift */; };
 		42A60B020929C4CDBEBB2C95 /* ActivityStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39950B0B2023618EBE4A605E /* ActivityStoreTests.swift */; };
 		440DAC4FEE1E4C7F879BF9F7 /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAC8D701EBF06B92A9555CD /* AppModel.swift */; };
 		44837019F6DA98E96E81B19B /* TronClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 299CAE271DB359ED043B2084 /* TronClient.swift */; };
+		44F58106D28FC3C0151ADA79 /* PriceAlertsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1584DCA53B33ACE4344C3C30 /* PriceAlertsView.swift */; };
 		463B4FEEA31DAF6D1FEC902B /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = DD0196A44662E7FF280F0C71 /* PrivacyInfo.xcprivacy */; };
 		493521AA8AE54874F365C8B6 /* OnboardingViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 775DF6A7EB4893C52931147B /* OnboardingViews.swift */; };
+		49674AD6F7F26E08C503C5EF /* AppPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F30D908E05BBBCA5FD7B730 /* AppPreferences.swift */; };
 		4B863E7BC6F27C794A36C0A5 /* SendTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD7D344A63F0FF153E537D31 /* SendTests.swift */; };
 		4C133A2FA86160459FE2D3DA /* TronClient+Send.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11A07617ED8A2ABD44104E61 /* TronClient+Send.swift */; };
 		4C4CA4186CD35C292C4F5153 /* TokenKind.swift in Sources */ = {isa = PBXBuildFile; fileRef = 656F4E9E65E5FE0D487D4636 /* TokenKind.swift */; };
 		4DE4C91AC51487B9C9FE8E00 /* MarketTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42E7EBFCB66C80927CD27110 /* MarketTests.swift */; };
+		4F15D8705A2988505C6E2DBD /* NetworkFeeInfoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CD513090A8D5D60546E5A32 /* NetworkFeeInfoView.swift */; };
+		4FD5C9D969CB01CB23C3F850 /* FeeEstimate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3267A9A82ED41E0B1A6FF8D5 /* FeeEstimate.swift */; };
+		507DF7ACFAC1E5ED0C8A380E /* TronClient+Fees.swift in Sources */ = {isa = PBXBuildFile; fileRef = 336A132BD2FA697E21B4EA1B /* TronClient+Fees.swift */; };
 		52B128A58945E7446A5F8D99 /* libsecp256k1 in Frameworks */ = {isa = PBXBuildFile; productRef = A220A1F916B142287AAA707D /* libsecp256k1 */; };
 		5F0A207D5DF599F917BB43DC /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BE5A3A81EE1AB50A49EECE9 /* Theme.swift */; };
 		5FFACEF7F29BD455A4A874A7 /* CurrenciesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D8FE6D419489B0C16D434E7 /* CurrenciesView.swift */; };
@@ -43,22 +53,28 @@
 		752D037577BE00A69BD6CFA2 /* TronKeys.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF42D9000991CE440510965B /* TronKeys.swift */; };
 		77088730C52280F2017A1C60 /* Market.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE6FA289DCB679D83EEAEF50 /* Market.swift */; };
 		77DA9C78FB8206533D4290CD /* SendStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE2BA14DC96952BE7ABC940A /* SendStatusView.swift */; };
+		7BBB66DFAAF352517FFFDCD9 /* AlertNotifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3869F5ADB394E2865FF2012D /* AlertNotifier.swift */; };
 		7C7A8D0ECCCD0D5401C9D3F5 /* Secp256k1.swift in Sources */ = {isa = PBXBuildFile; fileRef = 833E81C74CD67275CE39A824 /* Secp256k1.swift */; };
 		81BE6ACCADA5A81C06A34622 /* Brand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1AC3E19AB724C54687F7A389 /* Brand.swift */; };
 		84FF3452F32B0702038F4E3F /* SendView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 757BD391498199DDD6B1F338 /* SendView.swift */; };
 		85F57EEA52DF270857A77738 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 51F525398E3C60AEE20630FD /* AppIcon.icon */; };
 		8FDF306D46F304365082D9E7 /* ActivityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64C21130CFE8ACCDA28A2521 /* ActivityView.swift */; };
 		912B27D7EEB3BCDF6D5AC8EB /* DepositView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F0B3EEF92EB3C09F171937C /* DepositView.swift */; };
+		914856FC7F2B35712159072E /* PriceAlertTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7884F0575F37BFF4590F6F79 /* PriceAlertTests.swift */; };
 		924AC36020DA2BF100C7A18B /* QRScanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8F74AA96D2D538632FDFC67 /* QRScanner.swift */; };
+		935B07412E6A31DC13ECA6E4 /* PriceAlertStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60DDE64432027927D8C6C85E /* PriceAlertStore.swift */; };
 		964FF5197A33F95BD4C6E064 /* KestrelWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 829BF59C9B9C388C4FAE20DA /* KestrelWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		9D9D7F183BF0ED3AFACE4D3B /* ActivityStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4A7CC8397A7131EDBC484C0 /* ActivityStore.swift */; };
 		9F97A218EA40BEDF5430B69B /* Backend.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAAC179E692CE828B7281A83 /* Backend.swift */; };
+		A5B8309FCE5E3E866E6339B8 /* InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 31923674EA726C0D15B268E9 /* InfoPlist.xcstrings */; };
 		A6BA3A8CFF020F12778DF8F6 /* BalanceWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8873C06992CC6E2CBF2F3E9A /* BalanceWidget.swift */; };
 		AAE236B6E0F66B3AAB3A0D0C /* ActivityFilterSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACE730C857DDA36CE301FAF3 /* ActivityFilterSheet.swift */; };
 		AE57D98CA78DE5FAD694D029 /* ReviewTransferSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2997E6EABC202A33AF966760 /* ReviewTransferSheet.swift */; };
+		B3910C1524BCBA654FCD837E /* AppLanguage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39D6144DBF875E41E685CD73 /* AppLanguage.swift */; };
 		B44C01FD877964B5FA354C0F /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = D14927E8BA94E90D98B64A1A /* Components.swift */; };
 		B5A10E10B55F629F15D8C425 /* SharedWallet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33F00C185E7B4218571870D1 /* SharedWallet.swift */; };
 		BDAE09BF06FD259FA66D2E44 /* Encoding.swift in Sources */ = {isa = PBXBuildFile; fileRef = A874D272EEAC21447604D936 /* Encoding.swift */; };
+		C54FA6AB8C50E5C98C4120D7 /* ExpandedChartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 530BCB12E5A4D4F6469C3A52 /* ExpandedChartView.swift */; };
 		C8CA7AD7762DAEBE93B3152E /* SendRules.swift in Sources */ = {isa = PBXBuildFile; fileRef = A56AFE79F894A6AA61B9402B /* SendRules.swift */; };
 		CADF22761BE82C3F6CD36A59 /* Mnemonic.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD42F0C7AC57638D2634AA3A /* Mnemonic.swift */; };
 		CC25395F732E001E2F9F1433 /* PriceClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = C87A8A35796A94C990103AA9 /* PriceClient.swift */; };
@@ -70,7 +86,11 @@
 		E32DF0CFA7688F7544AD805D /* ActivityChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = 196F91417DE74D19415E5DC6 /* ActivityChart.swift */; };
 		E443FB852AF7D0FB4C898FB4 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = E8750F4DE927D97DFFAC7EF8 /* Localizable.xcstrings */; };
 		E46C52F13490E6FD53EFDBE8 /* KestrelApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D7BC74997F289A4441F3C45 /* KestrelApp.swift */; };
+		E77A7B3117FDA8EAEC082040 /* LanguagePickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27A9B5C0B1627CC14BE05F97 /* LanguagePickerView.swift */; };
 		EDEF76058003D652EBD21139 /* Encoding.swift in Sources */ = {isa = PBXBuildFile; fileRef = A874D272EEAC21447604D936 /* Encoding.swift */; };
+		F29636B6E4D7CC813679147F /* PriceAlert.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9002700FF37CD9456E731984 /* PriceAlert.swift */; };
+		FE570C8E1B9D78433AFF781E /* AppLanguage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39D6144DBF875E41E685CD73 /* AppLanguage.swift */; };
+		FF9BBA3691FD65DF3D32264C /* FeeEstimateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC7B1219135CB9BF89822B50 /* FeeEstimateTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -105,30 +125,45 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		01D60721BECAE7C59AA58A5F /* ChartCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChartCache.swift; sourceTree = "<group>"; };
 		0D8FE6D419489B0C16D434E7 /* CurrenciesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CurrenciesView.swift; sourceTree = "<group>"; };
 		11A07617ED8A2ABD44104E61 /* TronClient+Send.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TronClient+Send.swift"; sourceTree = "<group>"; };
 		11B3FAD725736C13CF82D286 /* Kestrel.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Kestrel.entitlements; sourceTree = "<group>"; };
+		1584DCA53B33ACE4344C3C30 /* PriceAlertsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PriceAlertsView.swift; sourceTree = "<group>"; };
 		196F91417DE74D19415E5DC6 /* ActivityChart.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityChart.swift; sourceTree = "<group>"; };
 		1AC3E19AB724C54687F7A389 /* Brand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Brand.swift; sourceTree = "<group>"; };
 		1F0B3EEF92EB3C09F171937C /* DepositView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DepositView.swift; sourceTree = "<group>"; };
+		2792E6EC8E4B906E2DC0F61A /* PriceChartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PriceChartView.swift; sourceTree = "<group>"; };
+		27A9B5C0B1627CC14BE05F97 /* LanguagePickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LanguagePickerView.swift; sourceTree = "<group>"; };
 		285697B43935082F684D756B /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		2997E6EABC202A33AF966760 /* ReviewTransferSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewTransferSheet.swift; sourceTree = "<group>"; };
 		299CAE271DB359ED043B2084 /* TronClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TronClient.swift; sourceTree = "<group>"; };
 		2AB01F9BDF073520D6C54E17 /* SecureStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecureStore.swift; sourceTree = "<group>"; };
+		31923674EA726C0D15B268E9 /* InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
+		3267A9A82ED41E0B1A6FF8D5 /* FeeEstimate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeeEstimate.swift; sourceTree = "<group>"; };
+		336A132BD2FA697E21B4EA1B /* TronClient+Fees.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TronClient+Fees.swift"; sourceTree = "<group>"; };
 		33F00C185E7B4218571870D1 /* SharedWallet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedWallet.swift; sourceTree = "<group>"; };
+		3869F5ADB394E2865FF2012D /* AlertNotifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertNotifier.swift; sourceTree = "<group>"; };
 		39950B0B2023618EBE4A605E /* ActivityStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityStoreTests.swift; sourceTree = "<group>"; };
+		39D6144DBF875E41E685CD73 /* AppLanguage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLanguage.swift; sourceTree = "<group>"; };
+		3F30D908E05BBBCA5FD7B730 /* AppPreferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppPreferences.swift; sourceTree = "<group>"; };
 		42E7EBFCB66C80927CD27110 /* MarketTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarketTests.swift; sourceTree = "<group>"; };
 		4AB600FF471FD9144C472886 /* SplashView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashView.swift; sourceTree = "<group>"; };
+		4CD513090A8D5D60546E5A32 /* NetworkFeeInfoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkFeeInfoView.swift; sourceTree = "<group>"; };
 		508912270C486821A59D6735 /* WalletView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletView.swift; sourceTree = "<group>"; };
 		51F525398E3C60AEE20630FD /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = wrapper.icon; path = AppIcon.icon; sourceTree = "<group>"; };
+		530BCB12E5A4D4F6469C3A52 /* ExpandedChartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExpandedChartView.swift; sourceTree = "<group>"; };
 		5852A34D65FDCEC55E7F1619 /* PinViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PinViews.swift; sourceTree = "<group>"; };
 		5ED8A0264D1CBF4AA9E4E93F /* TronNetworkTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TronNetworkTests.swift; sourceTree = "<group>"; };
 		6007C2C996095D5A5F0EAB68 /* ActivityAnalyticsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityAnalyticsTests.swift; sourceTree = "<group>"; };
+		60DDE64432027927D8C6C85E /* PriceAlertStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PriceAlertStore.swift; sourceTree = "<group>"; };
 		64C21130CFE8ACCDA28A2521 /* ActivityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityView.swift; sourceTree = "<group>"; };
 		656F4E9E65E5FE0D487D4636 /* TokenKind.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenKind.swift; sourceTree = "<group>"; };
 		6B2AE3FC86AFDE62828E8970 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		757BD391498199DDD6B1F338 /* SendView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SendView.swift; sourceTree = "<group>"; };
+		767FAD02BDF8ED89E5D6D868 /* AppearanceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppearanceView.swift; sourceTree = "<group>"; };
 		775DF6A7EB4893C52931147B /* OnboardingViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingViews.swift; sourceTree = "<group>"; };
+		7884F0575F37BFF4590F6F79 /* PriceAlertTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PriceAlertTests.swift; sourceTree = "<group>"; };
 		7D7BC74997F289A4441F3C45 /* KestrelApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KestrelApp.swift; sourceTree = "<group>"; };
 		800D6437CFE437B1AFE9CB76 /* TronAddress.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TronAddress.swift; sourceTree = "<group>"; };
 		829BF59C9B9C388C4FAE20DA /* KestrelWidget.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = KestrelWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -136,6 +171,8 @@
 		8873C06992CC6E2CBF2F3E9A /* BalanceWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BalanceWidget.swift; sourceTree = "<group>"; };
 		8CE21BC12769E95B4C84CD2A /* SupportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupportView.swift; sourceTree = "<group>"; };
 		8D7DF4AAA3D4E6854CD9865D /* CryptoVectorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CryptoVectorTests.swift; sourceTree = "<group>"; };
+		9002700FF37CD9456E731984 /* PriceAlert.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PriceAlert.swift; sourceTree = "<group>"; };
+		97C1C02EB74967623C731C0F /* MainSplitView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainSplitView.swift; sourceTree = "<group>"; };
 		9BE5A3A81EE1AB50A49EECE9 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		A4F9467DE1612D92619CA400 /* ActivityAnalytics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityAnalytics.swift; sourceTree = "<group>"; };
 		A56AFE79F894A6AA61B9402B /* SendRules.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SendRules.swift; sourceTree = "<group>"; };
@@ -167,6 +204,8 @@
 		EFA5C8FC3AC1AA63C88B67D9 /* bip39-english.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "bip39-english.txt"; sourceTree = "<group>"; };
 		F59A0F757752E4F9403363DD /* ReceiveLogic.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReceiveLogic.swift; sourceTree = "<group>"; };
 		F6931623837A3C4A7687FC40 /* vectors.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = vectors.json; sourceTree = "<group>"; };
+		F77A42F6D166FE6C628942B7 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
+		FC7B1219135CB9BF89822B50 /* FeeEstimateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeeEstimateTests.swift; sourceTree = "<group>"; };
 		FF42D9000991CE440510965B /* TronKeys.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TronKeys.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -211,6 +250,7 @@
 			children = (
 				AAAC8D701EBF06B92A9555CD /* AppModel.swift */,
 				7D7BC74997F289A4441F3C45 /* KestrelApp.swift */,
+				97C1C02EB74967623C731C0F /* MainSplitView.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -221,7 +261,9 @@
 				6007C2C996095D5A5F0EAB68 /* ActivityAnalyticsTests.swift */,
 				39950B0B2023618EBE4A605E /* ActivityStoreTests.swift */,
 				8D7DF4AAA3D4E6854CD9865D /* CryptoVectorTests.swift */,
+				FC7B1219135CB9BF89822B50 /* FeeEstimateTests.swift */,
 				42E7EBFCB66C80927CD27110 /* MarketTests.swift */,
+				7884F0575F37BFF4590F6F79 /* PriceAlertTests.swift */,
 				EE3A0C5ECD611CE2C75DEE4E /* ReceiveTests.swift */,
 				CD7D344A63F0FF153E537D31 /* SendTests.swift */,
 				5ED8A0264D1CBF4AA9E4E93F /* TronNetworkTests.swift */,
@@ -233,6 +275,7 @@
 		5269CFA50CB0407684B21A90 /* UI */ = {
 			isa = PBXGroup;
 			children = (
+				3F30D908E05BBBCA5FD7B730 /* AppPreferences.swift */,
 				D14927E8BA94E90D98B64A1A /* Components.swift */,
 			);
 			path = UI;
@@ -260,6 +303,7 @@
 		6196CB16F4EC2966E874BC04 /* Shared */ = {
 			isa = PBXGroup;
 			children = (
+				39D6144DBF875E41E685CD73 /* AppLanguage.swift */,
 				1AC3E19AB724C54687F7A389 /* Brand.swift */,
 				A874D272EEAC21447604D936 /* Encoding.swift */,
 				33F00C185E7B4218571870D1 /* SharedWallet.swift */,
@@ -273,6 +317,7 @@
 		6EAFF3D37A6F26D5B6C75138 /* Send */ = {
 			isa = PBXGroup;
 			children = (
+				3267A9A82ED41E0B1A6FF8D5 /* FeeEstimate.swift */,
 				B8F74AA96D2D538632FDFC67 /* QRScanner.swift */,
 				2997E6EABC202A33AF966760 /* ReviewTransferSheet.swift */,
 				A56AFE79F894A6AA61B9402B /* SendRules.swift */,
@@ -311,6 +356,7 @@
 		8D47797732A7C26A8EC6A2A7 /* Wallet */ = {
 			isa = PBXGroup;
 			children = (
+				4CD513090A8D5D60546E5A32 /* NetworkFeeInfoView.swift */,
 				508912270C486821A59D6735 /* WalletView.swift */,
 			);
 			path = Wallet;
@@ -346,6 +392,8 @@
 		BC51D900E01C424BFA1CCA31 /* Settings */ = {
 			isa = PBXGroup;
 			children = (
+				767FAD02BDF8ED89E5D6D868 /* AppearanceView.swift */,
+				27A9B5C0B1627CC14BE05F97 /* LanguagePickerView.swift */,
 				6B2AE3FC86AFDE62828E8970 /* SettingsView.swift */,
 			);
 			path = Settings;
@@ -367,7 +415,11 @@
 			children = (
 				C911B1A47702DF06FE58CB81 /* CoinDetailView.swift */,
 				0D8FE6D419489B0C16D434E7 /* CurrenciesView.swift */,
+				530BCB12E5A4D4F6469C3A52 /* ExpandedChartView.swift */,
 				AE6FA289DCB679D83EEAEF50 /* Market.swift */,
+				9002700FF37CD9456E731984 /* PriceAlert.swift */,
+				1584DCA53B33ACE4344C3C30 /* PriceAlertsView.swift */,
+				2792E6EC8E4B906E2DC0F61A /* PriceChartView.swift */,
 				656F4E9E65E5FE0D487D4636 /* TokenKind.swift */,
 			);
 			path = Currencies;
@@ -380,6 +432,7 @@
 				8873C06992CC6E2CBF2F3E9A /* BalanceWidget.swift */,
 				DB9049F8B85B489752F0D68C /* Info.plist */,
 				CD57C7052E76487254136B84 /* KestrelWidget.entitlements */,
+				F77A42F6D166FE6C628942B7 /* Localizable.xcstrings */,
 				CF0E428BECE0112A2581E2F6 /* PrivacyInfo.xcprivacy */,
 			);
 			path = KestrelWidget;
@@ -390,6 +443,7 @@
 			children = (
 				BA6CB0658110CB3F1869FDBD /* Assets.xcassets */,
 				EFA5C8FC3AC1AA63C88B67D9 /* bip39-english.txt */,
+				31923674EA726C0D15B268E9 /* InfoPlist.xcstrings */,
 				E8750F4DE927D97DFFAC7EF8 /* Localizable.xcstrings */,
 				DD0196A44662E7FF280F0C71 /* PrivacyInfo.xcprivacy */,
 			);
@@ -411,9 +465,13 @@
 			isa = PBXGroup;
 			children = (
 				C4A7CC8397A7131EDBC484C0 /* ActivityStore.swift */,
+				3869F5ADB394E2865FF2012D /* AlertNotifier.swift */,
 				BAAC179E692CE828B7281A83 /* Backend.swift */,
+				01D60721BECAE7C59AA58A5F /* ChartCache.swift */,
+				60DDE64432027927D8C6C85E /* PriceAlertStore.swift */,
 				C87A8A35796A94C990103AA9 /* PriceClient.swift */,
 				2AB01F9BDF073520D6C54E17 /* SecureStore.swift */,
+				336A132BD2FA697E21B4EA1B /* TronClient+Fees.swift */,
 				11A07617ED8A2ABD44104E61 /* TronClient+Send.swift */,
 			);
 			path = Services;
@@ -509,6 +567,8 @@
 			knownRegions = (
 				Base,
 				en,
+				ru,
+				"zh-Hans",
 			);
 			mainGroup = 5FC85FF52D9FD3BD7EC5EB38;
 			minimizedProjectReferenceProxies = 1;
@@ -541,6 +601,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				078DCD31C3DA0B0D43511F25 /* Assets.xcassets in Resources */,
+				0A91BCB574E7436567890263 /* Localizable.xcstrings in Resources */,
 				1E9C9B368C86665BF6B70797 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -551,6 +612,7 @@
 			files = (
 				85F57EEA52DF270857A77738 /* AppIcon.icon in Resources */,
 				34E7538121FB92193A66D181 /* Assets.xcassets in Resources */,
+				A5B8309FCE5E3E866E6339B8 /* InfoPlist.xcstrings in Resources */,
 				26A5240D53A7993DCE451BCA /* Kestrel.xcassets in Resources */,
 				E443FB852AF7D0FB4C898FB4 /* Localizable.xcstrings in Resources */,
 				463B4FEEA31DAF6D1FEC902B /* PrivacyInfo.xcprivacy in Resources */,
@@ -568,7 +630,9 @@
 				2CE5D1A3C7324E10FB26FCC9 /* ActivityAnalyticsTests.swift in Sources */,
 				42A60B020929C4CDBEBB2C95 /* ActivityStoreTests.swift in Sources */,
 				27CC52CA350C2CA3E6D6C26A /* CryptoVectorTests.swift in Sources */,
+				FF9BBA3691FD65DF3D32264C /* FeeEstimateTests.swift in Sources */,
 				4DE4C91AC51487B9C9FE8E00 /* MarketTests.swift in Sources */,
+				914856FC7F2B35712159072E /* PriceAlertTests.swift in Sources */,
 				2E356CDE81FC7E070C0CFAC1 /* ReceiveTests.swift in Sources */,
 				4B863E7BC6F27C794A36C0A5 /* SendTests.swift in Sources */,
 				6EB310D69B5C2441BF4CA881 /* TronNetworkTests.swift in Sources */,
@@ -584,20 +648,34 @@
 				AAE236B6E0F66B3AAB3A0D0C /* ActivityFilterSheet.swift in Sources */,
 				9D9D7F183BF0ED3AFACE4D3B /* ActivityStore.swift in Sources */,
 				8FDF306D46F304365082D9E7 /* ActivityView.swift in Sources */,
+				7BBB66DFAAF352517FFFDCD9 /* AlertNotifier.swift in Sources */,
+				FE570C8E1B9D78433AFF781E /* AppLanguage.swift in Sources */,
 				440DAC4FEE1E4C7F879BF9F7 /* AppModel.swift in Sources */,
+				49674AD6F7F26E08C503C5EF /* AppPreferences.swift in Sources */,
+				1A005A67FDAE865FD221EE39 /* AppearanceView.swift in Sources */,
 				9F97A218EA40BEDF5430B69B /* Backend.swift in Sources */,
 				81BE6ACCADA5A81C06A34622 /* Brand.swift in Sources */,
+				32AB311731F9280FD5240B31 /* ChartCache.swift in Sources */,
 				2FBFFC0569A1E28A9BB36469 /* CoinDetailView.swift in Sources */,
 				B44C01FD877964B5FA354C0F /* Components.swift in Sources */,
 				5FFACEF7F29BD455A4A874A7 /* CurrenciesView.swift in Sources */,
 				912B27D7EEB3BCDF6D5AC8EB /* DepositView.swift in Sources */,
 				BDAE09BF06FD259FA66D2E44 /* Encoding.swift in Sources */,
+				C54FA6AB8C50E5C98C4120D7 /* ExpandedChartView.swift in Sources */,
+				4FD5C9D969CB01CB23C3F850 /* FeeEstimate.swift in Sources */,
 				74D8EBE7EBE4C568BA93894A /* Keccak256.swift in Sources */,
 				E46C52F13490E6FD53EFDBE8 /* KestrelApp.swift in Sources */,
+				E77A7B3117FDA8EAEC082040 /* LanguagePickerView.swift in Sources */,
+				317EF439089EEE5F9050B184 /* MainSplitView.swift in Sources */,
 				77088730C52280F2017A1C60 /* Market.swift in Sources */,
 				CADF22761BE82C3F6CD36A59 /* Mnemonic.swift in Sources */,
+				4F15D8705A2988505C6E2DBD /* NetworkFeeInfoView.swift in Sources */,
 				493521AA8AE54874F365C8B6 /* OnboardingViews.swift in Sources */,
 				35B4ACDA20C3494E1A09A2CA /* PinViews.swift in Sources */,
+				F29636B6E4D7CC813679147F /* PriceAlert.swift in Sources */,
+				935B07412E6A31DC13ECA6E4 /* PriceAlertStore.swift in Sources */,
+				44F58106D28FC3C0151ADA79 /* PriceAlertsView.swift in Sources */,
+				24C4FBA2F5EB69DF3EEADBAA /* PriceChartView.swift in Sources */,
 				CC25395F732E001E2F9F1433 /* PriceClient.swift in Sources */,
 				924AC36020DA2BF100C7A18B /* QRScanner.swift in Sources */,
 				D242B29583AE92999FC5D9FA /* ReceiveLogic.swift in Sources */,
@@ -614,6 +692,7 @@
 				D09157C552EAA85AE7E5DF32 /* Theme.swift in Sources */,
 				4C4CA4186CD35C292C4F5153 /* TokenKind.swift in Sources */,
 				704C391044A8D4B375C705AA /* TronAddress.swift in Sources */,
+				507DF7ACFAC1E5ED0C8A380E /* TronClient+Fees.swift in Sources */,
 				4C133A2FA86160459FE2D3DA /* TronClient+Send.swift in Sources */,
 				D1EFD5283A877546E169B126 /* TronClient.swift in Sources */,
 				752D037577BE00A69BD6CFA2 /* TronKeys.swift in Sources */,
@@ -625,6 +704,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B3910C1524BCBA654FCD837E /* AppLanguage.swift in Sources */,
 				A6BA3A8CFF020F12778DF8F6 /* BalanceWidget.swift in Sources */,
 				1636894D015544EB034CA686 /* Brand.swift in Sources */,
 				EDEF76058003D652EBD21139 /* Encoding.swift in Sources */,

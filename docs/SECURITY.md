@@ -64,6 +64,9 @@ nickname and the appearance choice. No keys or phrase go into defaults.
 | Destination | Data |
 |---|---|
 | `api.trongrid.io` | The wallet address (reads), signed transactions, and the IP address. The widget also reads about every 15 minutes. No API key |
+| `api.trongrid.io` (fee estimate) | When a valid recipient is entered on Send, before the user confirms: the wallet address, the recipient address and the amount, in a read-only simulation of the transfer |
+| `api.coingecko.com` | Coin ids (`tether`, `tron`) and the IP address. Never the wallet address or a balance |
+| `api.kraken.com` | The pair names `TRXUSD` / `USDTUSD` for the 5-year chart, and the IP address. Never the wallet address or a balance |
 | `supabase.holylabs.net` | Only what a backend feature sends (none ship yet). The public anon key; no user session today |
 | Support chat (Chatwoot, once configured) | The anonymous support id, the app name, and whatever the user types. Loads the Chatwoot JS SDK into a `WKWebView` |
 | `tronscan.org`, terms and privacy pages | Only when the user taps |

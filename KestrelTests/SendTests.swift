@@ -81,6 +81,23 @@ final class SendTests: XCTestCase {
         XCTAssertEqual(check("99999999999999999999"), .problem(.malformed), "overflow")
     }
 
+    func testFeeGateFollowsTheEstimate() {
+        func gate(trx: Int64, fee: Int64) -> AmountCheck {
+            AmountRules.check("5", usdtUnits: 100_000_000, trxSun: trx, feeSun: fee)
+        }
+        // A transfer to a USDT holder needs about 7.03 TRX, not the constant 14.
+        XCTAssertEqual(gate(trx: 7_028_500, fee: 7_028_500), .valid(5_000_000), "exactly enough passes")
+        XCTAssertEqual(gate(trx: 7_028_499, fee: 7_028_500), .problem(.needsTRX))
+        XCTAssertEqual(gate(trx: 8_000_000, fee: 13_628_500), .problem(.needsTRX), "a new recipient costs more")
+        XCTAssertEqual(gate(trx: 0, fee: 0), .valid(5_000_000), "staked energy can cover the whole fee")
+        XCTAssertEqual(gate(trx: 13_999_999, fee: FeeEstimate.fallback.requiredSun), .problem(.needsTRX),
+                       "the fallback gates like the constant")
+        XCTAssertEqual(check("5", trx: 14_000_000), .valid(5_000_000), "no estimate: the constant still applies")
+        // The fee never hides a USDT problem.
+        XCTAssertEqual(AmountRules.check("500", usdtUnits: 100_000_000, trxSun: 0, feeSun: 7_028_500),
+                       .problem(.exceedsBalance(100_000_000)))
+    }
+
     func testMaxText() {
         XCTAssertEqual(AmountRules.text(units: 2_481_350_000), "2481.35")
         XCTAssertEqual(AmountRules.text(units: 1_000_000), "1")

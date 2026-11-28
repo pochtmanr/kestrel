@@ -1,0 +1,2 @@
+app_identifier("com.simnetiq.kestrel")
+# Auth is the App Store Connect API key from ENV (see Fastfile / README.md), not an Apple ID.

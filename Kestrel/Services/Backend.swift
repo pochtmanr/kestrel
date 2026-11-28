@@ -19,7 +19,7 @@ struct Backend: Sendable {
         let status: Int
         let message: String?
         var errorDescription: String? {
-            message ?? String(localized: "Something went wrong. Please try again.")
+            message ?? tr("Something went wrong. Please try again.")
         }
     }
 

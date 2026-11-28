@@ -76,6 +76,42 @@ enum ReceiveLogic {
     }
 }
 
+/// How a payment that just arrived compares with the amount being requested.
+enum RequestOutcome: Equatable {
+    case exact
+    case over(by: UInt64)
+    case short(by: UInt64)
+    /// No request, or the payment is in the other coin: nothing to compare.
+    case unrelated
+}
+
+extension ReceiveLogic {
+    /// Compares only like with like: both coins have 6 decimals, so 25 TRX and
+    /// 25 USDT are the same number of units and must never read as a match.
+    static func outcome(paymentToken: TokenKind, paymentUnits: UInt64,
+                        selectedToken: TokenKind, requestedUnits: UInt64?) -> RequestOutcome {
+        guard paymentToken == selectedToken, let requested = requestedUnits, requested > 0 else { return .unrelated }
+        if paymentUnits == requested { return .exact }
+        return paymentUnits > requested ? .over(by: paymentUnits - requested) : .short(by: requested - paymentUnits)
+    }
+
+    /// Which of the payments from one poll gets the receipt: the one that
+    /// answers the request (exact, else over, else short), else the first,
+    /// which is the newest. nil when there are none.
+    static func celebratedIndex(_ outcomes: [RequestOutcome]) -> Int? {
+        guard !outcomes.isEmpty else { return nil }
+        func rank(_ outcome: RequestOutcome) -> Int {
+            switch outcome {
+            case .exact: 0
+            case .over: 1
+            case .short: 2
+            case .unrelated: 3
+            }
+        }
+        return outcomes.indices.min { rank(outcomes[$0]) < rank(outcomes[$1]) }
+    }
+}
+
 private extension Character {
     var isASCIIDigit: Bool { isASCII && isNumber }
 }

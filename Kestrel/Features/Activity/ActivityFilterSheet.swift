@@ -40,12 +40,12 @@ struct ActivityFilterSheet: View {
                 }
 
                 Section("Date") {
-                    Toggle("From", isOn: dateToggle(\.from, default: defaultFrom))
+                    Toggle("From date", isOn: dateToggle(\.from, default: defaultFrom))
                     if let from = query.from {
                         DatePicker("Start", selection: dateBinding(\.from, fallback: from),
                                    in: ...(query.to ?? .now), displayedComponents: .date)
                     }
-                    Toggle("To", isOn: dateToggle(\.to, default: .now))
+                    Toggle("To date", isOn: dateToggle(\.to, default: .now))
                     if let to = query.to {
                         DatePicker("End", selection: dateBinding(\.to, fallback: to),
                                    in: (query.from ?? .distantPast)...Date.now, displayedComponents: .date)

@@ -5,6 +5,8 @@ import SwiftUI
 struct ReviewTransferSheet: View {
     let recipient: String
     let units: UInt64
+    /// The Send flow's fee estimate, re-run here with the amount being sent.
+    let fees: FeeEstimator
     /// Face ID is up: the confirm button waits.
     let authorizing: Bool
     let onConfirm: () -> Void
@@ -13,14 +15,18 @@ struct ReviewTransferSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     private var amountText: String { SendFormat.usdt(units) }
-    private var feeTRX: String { TRX.format(sun: TRX.minimumForTransferSun) }
+    private var estimate: FeeEstimate? { fees.estimate(for: recipient) }
+    /// The most the fee can take: what the wallet was checked against.
+    private var requiredSun: Int64 { estimate?.requiredSun ?? TRX.minimumForTransferSun }
+    /// The likely fee, for the fiat lines: the ceiling when there's no estimate.
+    private var burnSun: Int64 { estimate?.burnSun ?? TRX.minimumForTransferSun }
 
     private var amountUSD: Double? {
         app.prices[.usdt].map { Double(units) / 1_000_000 * $0.usd }
     }
 
     private var feeUSD: Double? {
-        app.prices[.trx].map { Double(TRX.minimumForTransferSun) / 1_000_000 * $0.usd }
+        app.prices[.trx].map { Double(burnSun) / 1_000_000 * $0.usd }
     }
 
     var body: some View {
@@ -49,18 +55,28 @@ struct ReviewTransferSheet: View {
                         Divider().padding(.leading, 16)
                         row("Network fee") {
                             VStack(alignment: .trailing, spacing: 2) {
-                                Text("≈ 13–14 TRX").monospacedDigit()
-                                Text(feeUSD.map { String(localized: "≈ \(USDPrice.format($0)), paid in TRX") }
-                                    ?? String(localized: "Paid in TRX"))
+                                HStack(spacing: 6) {
+                                    if fees.isLoading { ProgressView().controlSize(.small) }
+                                    // No estimate at all reads as the ceiling, never as a range.
+                                    NetworkFeeText(estimate: estimate ?? .fallback)
+                                }
+                                Text(feeUSD.map { tr("≈ \(USDPrice.format($0)), paid in TRX") }
+                                    ?? tr("Paid in TRX"))
                                     .font(.caption.monospacedDigit())
                                     .foregroundStyle(.secondary)
+                                if estimate?.isFirstTransferToRecipient == true {
+                                    Text("First transfer to this address costs more.")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
                             }
                         }
                         Divider().padding(.leading, 16)
                         row("Total") {
                             VStack(alignment: .trailing, spacing: 2) {
                                 Text(verbatim: "\(amountText) USDT").font(.body.weight(.semibold).monospacedDigit())
-                                Text("+ up to \(feeTRX) TRX fee")
+                                Text("+ up to \(FeeEstimate.trxText(sun: requiredSun)) TRX fee")
                                     .font(.caption.monospacedDigit())
                                     .foregroundStyle(.secondary)
                                 if let amountUSD, let feeUSD {
@@ -76,7 +92,7 @@ struct ReviewTransferSheet: View {
                     Label {
                         VStack(alignment: .leading, spacing: 3) {
                             Text("Transfers can't be undone").font(.subheadline.weight(.semibold))
-                            Text("Once it's sent, nobody can cancel or reverse it, Kestrel included. Make sure the address is right.")
+                            Text("Once it's sent, nobody can cancel or reverse it, Kastrel included. Make sure the address is right.")
                                 .font(.footnote)
                                 .foregroundStyle(.secondary)
                                 .fixedSize(horizontal: false, vertical: true)
@@ -99,7 +115,7 @@ struct ReviewTransferSheet: View {
                     if authorizing {
                         ProgressView().tint(.white)
                     } else {
-                        Label("Confirm with \(Biometrics.isEnabled ? Biometrics.label : String(localized: "PIN"))",
+                        Label("Confirm with \(Biometrics.isEnabled ? Biometrics.label : tr("PIN"))",
                               systemImage: Biometrics.isEnabled ? Biometrics.symbol : "lock.fill")
                     }
                 }
@@ -117,6 +133,11 @@ struct ReviewTransferSheet: View {
             }
         }
         .presentationDetents([.large])
+        .task {
+            // The demo wallet never touches the network; its estimate is already set.
+            guard !app.isDemo, let from = app.address else { return }
+            fees.update(from: from, to: recipient, units: units, balance: app.usdtUnits, immediately: true)
+        }
         .interactiveDismissDisabled(authorizing)
     }
 

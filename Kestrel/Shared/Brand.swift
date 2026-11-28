@@ -4,7 +4,7 @@ import Foundation
 /// the widget agree without hard-coding them twice.
 enum Brand {
     /// The name on the home screen.
-    static let name = Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String ?? "Kestrel"
+    static let name = Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String ?? "Kastrel"
 
     /// The App Group the app and its widget share.
     static let appGroup = Bundle.main.object(forInfoDictionaryKey: "AppGroup") as? String ?? "group.com.simnetiq.kestrel"

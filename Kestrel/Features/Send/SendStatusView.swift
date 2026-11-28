@@ -117,7 +117,7 @@ private struct SendingContent: View {
             StatusBadge(symbol: "paperplane.fill", tint: Theme.Palette.accentText, spinning: true)
             Text("Sending…").font(.title2.bold())
             TransferSummary(submission: submission)
-            Text(slow ? "The network is slow right now. Keep Kestrel open: the result will show here."
+            Text(slow ? "The network is slow right now. Keep Kastrel open: the result will show here."
                       : "Signing on this device and handing the transfer to the TRON network.")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
@@ -132,7 +132,7 @@ private struct SendingContent: View {
                 .frame(minHeight: 54)
         }
         .task {
-            announce(String(localized: "Sending"))
+            announce(tr("Sending"))
             try? await Task.sleep(for: .seconds(8))
             slow = true
         }
@@ -186,7 +186,14 @@ private struct SentContent: View {
                 .accessibilityLabel(copied ? Text("Transaction ID copied") : Text("Transaction ID: \(txID)"))
                 .accessibilityHint("Copies to clipboard")
                 Divider().padding(.leading, 16)
-                row("Network fee") { Text("≈ 13–14 TRX").monospacedDigit() }
+                row("Network fee") {
+                    // The receipt's figure once Activity has it; the estimate until then.
+                    if let paid = app.activity.fees[txID] {
+                        Text("\(TRX.format(sun: paid)) TRX").monospacedDigit()
+                    } else {
+                        NetworkFeeText(estimate: submission.fee ?? .fallback)
+                    }
+                }
                 Divider().padding(.leading, 16)
                 Link(destination: tronscan) {
                     HStack {
@@ -236,7 +243,7 @@ private struct SentContent: View {
     /// Same mechanism as the transfer details screen: the transfer is
     /// confirmed once it shows up in the wallet's (confirmed-only) history.
     private func waitForConfirmation() async {
-        announce(String(localized: "Transfer sent. Processing."))
+        announce(tr("Transfer sent. Processing."))
         let started = Date.now
         while !confirmed, !Task.isCancelled {
             try? await Task.sleep(for: .seconds(4))
@@ -252,7 +259,7 @@ private struct SentContent: View {
         }
         if confirmed {
             Haptics.success()
-            announce(String(localized: "Transfer confirmed"))
+            announce(tr("Transfer confirmed"))
         }
     }
 

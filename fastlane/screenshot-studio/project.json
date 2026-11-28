@@ -1,0 +1,228 @@
+{
+  "nightColor": "#0E131A",
+  "flatColor": "#F2F4F7",
+  "backgrounds": {
+    "night": "linear-gradient(180deg,#0B1424 0%,#0E131A 100%)",
+    "night-sky": "radial-gradient(120% 60% at 50% 0%,rgba(187,216,255,.24) 0%,rgba(187,216,255,0) 62%),linear-gradient(180deg,#0B1424 0%,#0E131A 100%)",
+    "steel": "radial-gradient(110% 70% at 50% 8%,rgba(98,119,154,.55) 0%,rgba(98,119,154,0) 64%),linear-gradient(180deg,#0B1424 0%,#0E131A 100%)",
+    "ember": "radial-gradient(120% 55% at 50% 102%,rgba(232,147,94,.34) 0%,rgba(232,147,94,0) 60%),radial-gradient(100% 50% at 50% 0%,rgba(98,119,154,.30) 0%,rgba(98,119,154,0) 60%),linear-gradient(180deg,#0B1424 0%,#0E131A 100%)",
+    "usdt": "radial-gradient(110% 60% at 50% 4%,rgba(63,143,122,.45) 0%,rgba(63,143,122,0) 62%),linear-gradient(180deg,#0B1424 0%,#0E131A 100%)",
+    "trx": "radial-gradient(90% 50% at 85% 6%,rgba(184,80,78,.38) 0%,rgba(184,80,78,0) 60%),radial-gradient(90% 50% at 12% 10%,rgba(63,143,122,.34) 0%,rgba(63,143,122,0) 60%),linear-gradient(180deg,#0B1424 0%,#0E131A 100%)",
+    "surface": "linear-gradient(180deg,#18202A 0%,#0E131A 70%)",
+    "sky-dusk": "radial-gradient(130% 70% at 50% 0%,rgba(187,216,255,.20) 0%,rgba(187,216,255,0) 55%),radial-gradient(120% 50% at 50% 104%,rgba(232,147,94,.22) 0%,rgba(232,147,94,0) 58%),linear-gradient(180deg,#0B1424 0%,#0E131A 100%)"
+  },
+  "devices": {
+    "iphone": {
+      "label": "iPhone 6.9″",
+      "size": [
+        1320,
+        2868
+      ],
+      "shot": [
+        1320,
+        2868
+      ],
+      "simulator": "iPhone 18 Pro Max",
+      "folder": "ios",
+      "prefix": "iphone",
+      "slides": [
+        {
+          "id": "home",
+          "copy": "home",
+          "bg": "night-sky"
+        },
+        {
+          "id": "send",
+          "copy": "send",
+          "bg": "ember",
+          "eyebrow": "ember"
+        },
+        {
+          "id": "receive",
+          "copy": "receive",
+          "bg": "usdt"
+        },
+        {
+          "id": "activity",
+          "copy": "activity",
+          "bg": "steel"
+        },
+        {
+          "id": "coin",
+          "copy": "coin",
+          "bg": "trx"
+        },
+        {
+          "id": "transfer",
+          "copy": "transfer",
+          "bg": "night"
+        },
+        {
+          "id": "security",
+          "copy": "security",
+          "bg": "surface",
+          "eyebrow": "ember"
+        },
+        {
+          "id": "widget",
+          "copy": "widget",
+          "bg": "sky-dusk"
+        },
+        {
+          "id": "welcome",
+          "copy": "welcome",
+          "bg": "night-sky"
+        }
+      ]
+    },
+    "ipad": {
+      "label": "iPad 13″",
+      "size": [
+        2064,
+        2752
+      ],
+      "shot": [
+        2064,
+        2752
+      ],
+      "simulator": "iPad Pro 13-inch (M5), portrait",
+      "folder": "ios",
+      "prefix": "ipad",
+      "slides": [
+        {
+          "id": "home",
+          "copy": "home",
+          "bg": "night-sky"
+        },
+        {
+          "id": "send",
+          "copy": "send",
+          "bg": "ember",
+          "eyebrow": "ember"
+        },
+        {
+          "id": "receive",
+          "copy": "receive",
+          "bg": "usdt"
+        },
+        {
+          "id": "activity",
+          "copy": "activity",
+          "bg": "steel"
+        },
+        {
+          "id": "coin",
+          "copy": "coin",
+          "bg": "trx"
+        },
+        {
+          "id": "transfer",
+          "copy": "transfer",
+          "bg": "night"
+        },
+        {
+          "id": "security",
+          "copy": "security",
+          "bg": "surface",
+          "eyebrow": "ember"
+        },
+        {
+          "id": "widget",
+          "copy": "widget",
+          "bg": "sky-dusk"
+        },
+        {
+          "id": "welcome",
+          "copy": "welcome",
+          "bg": "night-sky"
+        }
+      ]
+    },
+    "duo": {
+      "label": "iPhone Duo (inner)",
+      "size": [
+        2853,
+        2007
+      ],
+      "shot": [
+        2007,
+        2853
+      ],
+      "simulator": "iPhone Duo, unfolded (inner display 3, captured by hand)",
+      "folder": "duo",
+      "prefix": "duo",
+      "slides": [
+        {
+          "id": "home",
+          "kind": "hero-device",
+          "copy": "home",
+          "bg": "night-sky"
+        },
+        {
+          "id": "send",
+          "copy": "send",
+          "bg": "ember",
+          "eyebrow": "ember"
+        },
+        {
+          "id": "receive",
+          "copy": "receive",
+          "bg": "usdt"
+        },
+        {
+          "id": "activity",
+          "copy": "activity",
+          "bg": "steel"
+        },
+        {
+          "id": "coin",
+          "copy": "coin",
+          "bg": "trx"
+        },
+        {
+          "id": "transfer",
+          "copy": "transfer",
+          "bg": "night"
+        },
+        {
+          "id": "security",
+          "copy": "security",
+          "bg": "surface",
+          "eyebrow": "ember"
+        },
+        {
+          "id": "widget",
+          "copy": "widget",
+          "bg": "sky-dusk"
+        },
+        {
+          "id": "welcome",
+          "copy": "welcome",
+          "bg": "night-sky"
+        }
+      ]
+    }
+  },
+  "variants": {
+    "A": {
+      "name": "Night",
+      "theme": "dark",
+      "layout": "stack",
+      "note": "Control. Brand-night gradient per slide, headline above the device."
+    },
+    "C": {
+      "name": "Big type",
+      "theme": "dark",
+      "layout": "bleed",
+      "note": "Same backgrounds, bigger headline, larger device running off the bottom edge."
+    }
+  },
+  "topLocales": [
+    "en-US"
+  ],
+  "rtl": [
+    "ar-SA",
+    "he",
+    "ur-PK"
+  ]
+}

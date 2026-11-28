@@ -106,7 +106,7 @@ enum Biometrics {
         case .faceID: "Face ID"
         case .touchID: "Touch ID"
         case .opticID: "Optic ID"
-        case .none: String(localized: "Biometrics")
+        case .none: tr("Biometrics")
         }
     }
 
@@ -128,7 +128,7 @@ enum Biometrics {
     /// Biometrics only (the app PIN is the fallback, shown by our own UI).
     static func authenticate(reason: String) async -> Bool {
         let context = LAContext()
-        context.localizedFallbackTitle = "Use PIN"
+        context.localizedFallbackTitle = tr("Use PIN")
         return (try? await context.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, localizedReason: reason)) ?? false
     }
 }

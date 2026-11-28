@@ -1,0 +1,21 @@
+Kastrel Wallet is a self-custody (non-custodial) wallet for USDT and TRX on the TRON network. There is no account, no login and no demo account to provide: the wallet is created on the device and its keys never leave it. Simnetiq Ltd does not hold, exchange or transmit user funds. The app does not sell crypto and has no card, fiat or KYC features.
+
+How to review:
+1. Launch the app and tap "Create a new wallet".
+2. The app shows a 12-word recovery phrase. Tap "Continue" (writing it down is only needed to keep using the wallet later).
+3. Create a 6-digit PIN and enter it again to confirm. The app then offers Face ID; either choice is fine.
+4. You are now on the home screen of a new, empty wallet on TRON mainnet.
+
+What can be reviewed without funds:
+- Home: USDT and TRX balances (zero) and the Currencies card.
+- Receive: the wallet's TRON address as a QR code, sharing it, and requesting a specific amount.
+- Send: entering or pasting a TRON address, scanning a QR code, entering an amount and the address and network-fee checks. Because the new wallet holds no USDT or TRX, the app stops before a transfer can be broadcast and says why (the amount is more than the balance, or there is not enough TRX for the network fee).
+- Currencies: USDT and TRX price charts, market stats and the coin screens.
+- Activity: the empty state, charts, filters and search (they fill in once the wallet has transfers).
+- Widgets: add the Kastrel balance widget to the Home Screen or Lock Screen.
+- Settings: viewing the recovery phrase (after the PIN), changing the PIN, Face ID, and erasing the wallet from this device.
+- Restore: on a fresh install, "I already have a wallet" accepts an existing 12- or 24-word phrase.
+
+Network access: balances, history and transfers come directly from the public TRON network through TronGrid; market prices come from CoinGecko, and the 5-year price chart from Kraken's public market data. The recovery phrase, keys and PIN are stored only in the device Keychain and are never sent to any server.
+
+A real transfer needs USDT plus about 7-14 TRX for the network fee, so the broadcast step itself cannot be completed with an empty wallet.

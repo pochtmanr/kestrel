@@ -1,0 +1,94 @@
+---
+import '../styles/global.css';
+import { t, href, site, locales } from '../lib.mjs';
+
+interface Props {
+  locale: string;
+  slug?: string;
+  title: string;
+  description: string;
+  nightHeader?: boolean;
+}
+const { locale, slug = '', title, description, nightHeader = false } = Astro.props;
+const s = t(locale);
+const lang = locales.find((l) => l.code === locale).lang;
+const canonical = new URL(href(locale, slug), site.url).href;
+const home = href(locale);
+const nav = [
+  ['features', s.nav.features],
+  ['fees', s.nav.fees],
+  ['custody', s.nav.custody],
+  ['faq', s.nav.faq],
+];
+const productLinks = ['support', 'security'];
+const legalLinks = ['privacy', 'terms', 'risks', 'restricted', 'legal'];
+---
+
+<!doctype html>
+<html lang={lang}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    {locales.map((l) => <link rel="alternate" hreflang={l.lang} href={new URL(href(l.code, slug), site.url).href} />)}
+    <link rel="alternate" hreflang="x-default" href={new URL(href('en', slug), site.url).href} />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta name="theme-color" content="#0B1424" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:type" content="website" />
+  </head>
+  <body>
+    <a class="skip" href="#main">{s.nav.features}</a>
+    <div class={nightHeader ? 'hero on-night' : ''}>
+      <header class="wrap site-header">
+        <a class="brand" href={home}><span class="brand-mark" aria-hidden="true"></span>{site.brand}</a>
+        <nav class="site-nav" aria-label={s.footer.product}>
+          {nav.map(([id, label]) => <a href={`${home}#${id}`}>{label}</a>)}
+          <a href={href(locale, 'support')}>{s.nav.support}</a>
+        </nav>
+        <nav class="langs" aria-label={s.footer.language}>
+          {
+            locales.map((l) => (
+              <a href={href(l.code, slug)} lang={l.lang} hreflang={l.lang} aria-current={l.code === locale ? 'true' : undefined}>
+                {l.label}
+              </a>
+            ))
+          }
+        </nav>
+      </header>
+      <slot name="hero" />
+    </div>
+
+    <main id="main">
+      <slot />
+    </main>
+
+    <footer class="wrap site-footer">
+      <div class="footer-top">
+        <a class="brand" href={home}><span class="brand-mark" aria-hidden="true"></span>{site.brand}</a>
+        <div class="footer-col">
+          <h2>{s.footer.product}</h2>
+          <ul>
+            {productLinks.map((p) => <li><a href={href(locale, p)}>{s.footer.pages[p]}</a></li>)}
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h2>{s.footer.legal}</h2>
+          <ul>
+            {legalLinks.map((p) => <li><a href={href(locale, p)}>{s.footer.pages[p]}</a></li>)}
+          </ul>
+        </div>
+      </div>
+      <div class="footer-fine">
+        <p>{s.footer.company}</p>
+        <p>{s.footer.status}</p>
+        <p>{s.footer.marks}</p>
+        <p>© 2026 {site.company}</p>
+      </div>
+    </footer>
+  </body>
+</html>

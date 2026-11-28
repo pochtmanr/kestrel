@@ -53,7 +53,7 @@ struct QRCodeView: View {
     }
 }
 
-/// Primary full-width button.
+/// Primary full-width button. Every call to action is a capsule, like the system's.
 struct PrimaryButtonStyle: ButtonStyle {
     var tint: Color = Theme.Palette.accent
     @Environment(\.isEnabled) private var isEnabled
@@ -63,7 +63,9 @@ struct PrimaryButtonStyle: ButtonStyle {
             .font(.headline)
             .foregroundStyle(.white)
             .frame(maxWidth: .infinity, minHeight: 54)
-            .background(tint.opacity(isEnabled ? 1 : 0.35), in: .rect(cornerRadius: Theme.Radius.l, style: .continuous))
+            .padding(.horizontal, Theme.Spacing.l)
+            .background(tint.opacity(isEnabled ? 1 : 0.35), in: .capsule)
+            .contentShape(.capsule)
             .opacity(configuration.isPressed ? 0.8 : 1)
     }
 }
@@ -74,7 +76,9 @@ struct SecondaryButtonStyle: ButtonStyle {
             .font(.headline)
             .foregroundStyle(.primary)
             .frame(maxWidth: .infinity, minHeight: 54)
-            .surface(cornerRadius: Theme.Radius.l)
+            .padding(.horizontal, Theme.Spacing.l)
+            .surface(in: .capsule)
+            .contentShape(.capsule)
             .opacity(configuration.isPressed ? 0.7 : 1)
     }
 }
@@ -105,13 +109,67 @@ struct RecoveryWordsGrid: View {
 
 /// Keeps forms and cards readable on iPad instead of stretching edge to edge.
 struct ReadableWidth: ViewModifier {
+    var maxWidth: CGFloat = Theme.Layout.readable
     func body(content: Content) -> some View {
-        content.frame(maxWidth: 560).frame(maxWidth: .infinity)
+        content.frame(maxWidth: maxWidth).frame(maxWidth: .infinity)
     }
 }
 
 extension View {
-    func readableWidth() -> some View { modifier(ReadableWidth()) }
+    func readableWidth(_ maxWidth: CGFloat = Theme.Layout.readable) -> some View { modifier(ReadableWidth(maxWidth: maxWidth)) }
+}
+
+/// Two columns side by side when the container is wide enough (iPad, an
+/// unfolded iPhone), stacked otherwise. Decided by the space it actually
+/// gets, not the size class: a sidebar or Split View can leave a "regular"
+/// screen with phone-sized room.
+struct AdaptiveColumns<Leading: View, Trailing: View>: View {
+    var minWidth: CGFloat = Theme.Layout.twoColumnMinWidth
+    var spacing: CGFloat = 14
+    /// The leading column's share of the width when side by side.
+    var leadingFraction: CGFloat = 0.5
+    @ViewBuilder var leading: Leading
+    @ViewBuilder var trailing: Trailing
+    @State private var width: CGFloat = 0
+    @State private var sideBySide = false
+
+    var body: some View {
+        Group {
+            if sideBySide {
+                let gap = Theme.Layout.columnGap
+                let leadWidth = ((width - gap) * leadingFraction).rounded()
+                HStack(alignment: .top, spacing: gap) {
+                    // Each column keeps its own height: the shorter one mustn't stretch to match.
+                    VStack(spacing: spacing) { leading }.fixedSize(horizontal: false, vertical: true).frame(width: leadWidth)
+                    VStack(spacing: spacing) { trailing }.fixedSize(horizontal: false, vertical: true).frame(maxWidth: .infinity)
+                }
+            } else {
+                VStack(spacing: spacing) {
+                    leading
+                    trailing
+                }
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .environment(\.isSideBySide, sideBySide)
+        .onGeometryChange(for: CGFloat.self) { $0.size.width.rounded() } action: { newWidth in
+            width = newWidth
+            // Hysteresis: a width that hovers at the threshold (charts and transitions
+            // nudge it by fractions of a point) would otherwise flip layouts forever.
+            if sideBySide, newWidth < minWidth - 32 { sideBySide = false }
+            else if !sideBySide, newWidth >= minWidth { sideBySide = true }
+        }
+    }
+}
+
+extension EnvironmentValues {
+    /// True inside the iPad / unfolded-iPhone shell (sidebar + detail), where
+    /// Receive, Currencies and Settings are sidebar sections instead of pushes.
+    @Entry var isSplitShell = false
+    /// True for views inside an `AdaptiveColumns` that is showing its columns
+    /// side by side. Read this instead of measuring the width again: a second
+    /// measurement would disagree inside the component's hysteresis band.
+    @Entry var isSideBySide = false
 }
 
 /// The app's look, chosen in Settings. System follows the phone.
@@ -121,9 +179,9 @@ enum Appearance: String, CaseIterable, Identifiable {
     var id: String { rawValue }
     var title: String {
         switch self {
-        case .system: String(localized: "System")
-        case .light: String(localized: "Light")
-        case .dark: String(localized: "Dark")
+        case .system: tr("System")
+        case .light: tr("Light")
+        case .dark: tr("Dark")
         }
     }
     var colorScheme: ColorScheme? {
@@ -137,14 +195,14 @@ enum Appearance: String, CaseIterable, Identifiable {
 
 /// A grouped panel: a solid slate card. A hairline keeps its edge in both
 /// modes; on light a soft shadow too, or white melts into the pale page.
-struct Surface: ViewModifier {
-    var cornerRadius: CGFloat
+struct Surface<S: InsettableShape>: ViewModifier {
+    var shape: S
     @Environment(\.colorScheme) private var scheme
 
     func body(content: Content) -> some View {
         content.background {
             // Shadow on the panel shape only, so the text inside stays crisp.
-            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+            shape
                 .fill(Theme.Palette.surface)
                 .strokeBorder(Theme.Palette.separator, lineWidth: scheme == .light ? 0.5 : 1)
                 .shadow(color: Color(red: 0.07, green: 0.10, blue: 0.16).opacity(scheme == .light ? 0.07 : 0), radius: 14, y: 6)
@@ -153,7 +211,12 @@ struct Surface: ViewModifier {
 }
 
 extension View {
-    func surface(cornerRadius: CGFloat = Theme.Radius.card) -> some View { modifier(Surface(cornerRadius: cornerRadius)) }
+    func surface(cornerRadius: CGFloat = Theme.Radius.card) -> some View {
+        modifier(Surface(shape: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)))
+    }
+
+    /// The same panel in another shape: capsule buttons, mostly.
+    func surface(in shape: some InsettableShape) -> some View { modifier(Surface(shape: shape)) }
 }
 
 /// Press feedback for big tappable cards: a gentle shrink, like a physical key.
@@ -183,6 +246,18 @@ extension View {
     func zoomDestination(id: some Hashable, in namespace: Namespace.ID) -> some View {
         if #available(iOS 18, *) {
             navigationTransition(.zoom(sourceID: id, in: namespace))
+        } else {
+            self
+        }
+    }
+}
+
+extension View {
+    /// iPad: a centred form-sized sheet (iOS 18+) instead of a full-width page sheet.
+    @ViewBuilder
+    func formSheetSizing() -> some View {
+        if #available(iOS 18, *) {
+            presentationSizing(.form)
         } else {
             self
         }

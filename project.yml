@@ -49,7 +49,7 @@ targets:
     info:
       path: Kestrel/Info.plist
       properties:
-        CFBundleDisplayName: Kestrel
+        CFBundleDisplayName: Kastrel
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         AppGroup: group.com.simnetiq.kestrel
@@ -68,8 +68,10 @@ targets:
           - UIInterfaceOrientationPortraitUpsideDown
           - UIInterfaceOrientationLandscapeLeft
           - UIInterfaceOrientationLandscapeRight
-        NSFaceIDUsageDescription: Kestrel uses Face ID to unlock the app and confirm transfers.
-        NSCameraUsageDescription: Kestrel uses the camera to scan a wallet address QR code.
+        NSFaceIDUsageDescription: Kastrel uses Face ID to unlock the app and confirm transfers.
+        NSCameraUsageDescription: Kastrel uses the camera to scan a wallet address QR code.
+        UIBackgroundModes: [fetch]
+        BGTaskSchedulerPermittedIdentifiers: [com.simnetiq.kestrel.price-alerts]
         CFBundleURLTypes:
           - CFBundleURLName: com.simnetiq.kestrel
             CFBundleURLSchemes: [kestrel]
@@ -99,7 +101,7 @@ targets:
     info:
       path: KestrelWidget/Info.plist
       properties:
-        CFBundleDisplayName: Kestrel
+        CFBundleDisplayName: Kastrel
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         AppGroup: group.com.simnetiq.kestrel

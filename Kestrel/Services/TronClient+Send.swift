@@ -9,7 +9,7 @@ extension TronClient {
     /// and broadcasts it. The private key never leaves this function.
     func sendUSDT(from keys: TronKeys, to recipient: String, units: UInt64) async throws -> String {
         guard let owner = TronAddress.hex21(keys.address), let contract = TronAddress.hex21(USDT.contract),
-              let recipientWord = TronAddress.abiWord(recipient) else { throw Failure.rejected("Invalid address.") }
+              let recipientWord = TronAddress.abiWord(recipient) else { throw Failure.rejected(tr("Invalid address.")) }
         let amountHex = String(units, radix: 16)
         let amountWord = String(repeating: "0", count: 64 - amountHex.count) + amountHex
         let built = try await post("wallet/triggersmartcontract", [
@@ -22,7 +22,7 @@ extension TronClient {
             "visible": false,
         ])
         guard let result = built["result"] as? [String: Any], result["result"] as? Bool == true else {
-            throw Failure.rejected(Self.decodeMessage(built) ?? "The network couldn't build this transfer.")
+            throw Failure.rejected(Self.decodeMessage(built) ?? tr("The network couldn't build this transfer."))
         }
         guard var transaction = built["transaction"] as? [String: Any],
               let txID = transaction["txID"] as? String, transaction["raw_data_hex"] is String
@@ -31,7 +31,7 @@ extension TronClient {
         transaction["signature"] = [try keys.sign(transactionID: txID)]
         let broadcast = try await post("wallet/broadcasttransaction", transaction)
         guard broadcast["result"] as? Bool == true else {
-            throw Failure.rejected(Self.decodeMessage(broadcast) ?? "The network rejected this transfer.")
+            throw Failure.rejected(Self.decodeMessage(broadcast) ?? tr("The network rejected this transfer."))
         }
         return txID
     }

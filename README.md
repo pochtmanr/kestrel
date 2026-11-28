@@ -36,3 +36,12 @@ Use it for screenshots.
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 - [docs/SECURITY.md](docs/SECURITY.md)
 - [docs/roadmap/KESTREL_PLAN.md](docs/roadmap/KESTREL_PLAN.md): what's done and what's next
+
+## Releasing (App Store)
+
+1. `scripts/capture-screenshots.sh`: raw iPhone 6.9" and iPad 13" shots from the simulators (`-demo` wallet).
+   iPhone Duo (unfold it in Xcode first: `scripts/capture-screenshots.sh duo`) and the widget slide are by hand.
+2. `cd fastlane/screenshot-studio && node server.mjs`: edit headlines, then export and run `scripts/collect.sh`
+   (see its README).
+3. Listing text lives in `fastlane/metadata/<locale>/`. Uploads: see `fastlane/README.md` (needs the
+   App Store Connect API key in `ASC_KEY_ID` / `ASC_ISSUER_ID` / `ASC_KEY_FILEPATH`, and `ASC_APP_VERSION`).

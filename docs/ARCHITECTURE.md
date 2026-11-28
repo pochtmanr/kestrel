@@ -24,8 +24,11 @@ to App Group defaults, and refreshes from TronGrid itself.
   `TronClient` (reads), `TronAddress`, `Encoding` (hex, Base58), `SharedWallet` (widget snapshot).
 - `Services/` (app only): `SecureStore` (Keychain, `WalletVault`, `PinStore`, `Biometrics`,
   `SupportIdentity`), `TronClient+Send` (build, sign, broadcast), `Backend` (Supabase client),
-  `PriceClient` (CoinGecko markets: price, 24h/7d change, sparkline, stats, and price history up to 1 year;
-  coin ids only, never the address) and `ActivityStore` (cached full USDT history and fees).
+  `PriceClient` (CoinGecko markets: price, changes, sparkline, stats, and price history up to 1 year; the
+  5-year chart comes from Kraken's public weekly candles; coin ids only, never the address), `ChartCache`
+  (charts on disk, prices only), `TronClient+Fees` (read-only fee estimate for a USDT transfer: simulated
+  energy, account resources, chain prices), `PriceAlertStore` and `AlertNotifier` (on-device price alerts as
+  local notifications; no server) and `ActivityStore` (cached full USDT history and fees).
 - `Crypto/`: `Mnemonic` (BIP-39), `TronKeys` (BIP-32/44, address, signing), `Secp256k1`, `Keccak256`.
 - `UI/Components.swift`: shared views and styles (buttons, surfaces, QR code, support button,
   appearance).

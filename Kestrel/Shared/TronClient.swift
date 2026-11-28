@@ -34,7 +34,9 @@ enum USDT {
 
 /// TRX amounts in sun (1 TRX = 1_000_000 sun).
 enum TRX {
-    /// A USDT transfer burns ~13–14 TRX of energy when the wallet has none staked.
+    /// The most a USDT transfer burns when the wallet has no staked energy: about 7 TRX to an
+    /// address that already holds USDT, 13–14 to one that doesn't (energy at 100 sun). Used where
+    /// there's no recipient to estimate for; Send asks the network (`FeeEstimate`).
     static let minimumForTransferSun: Int64 = 14_000_000
 
     static func format(sun: Int64) -> String {
@@ -62,9 +64,9 @@ struct TronClient: Sendable {
 
         var errorDescription: String? {
             switch self {
-            case .http(let code): String(localized: "The TRON network didn't respond (HTTP \(code)). Try again.")
-            case .rateLimited: String(localized: "The TRON network is busy. Retrying shortly.")
-            case .badResponse: String(localized: "Unexpected response from the TRON network.")
+            case .http(let code): tr("The TRON network didn't respond (HTTP \(code)). Try again.")
+            case .rateLimited: tr("The TRON network is busy. Retrying shortly.")
+            case .badResponse: tr("Unexpected response from the TRON network.")
             case .rejected(let message): message
             }
         }

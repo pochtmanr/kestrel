@@ -12,11 +12,13 @@ struct BalanceWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: SharedWallet.widgetKind, provider: BalanceProvider()) { entry in
             BalanceWidgetView(entry: entry)
+                // The language chosen in the app's Settings, not only the phone's.
+                .transformEnvironment(\.locale) { if let locale = AppLanguage.current.locale { $0 = locale } }
                 .containerBackground(for: .widget) { WidgetBackground() }
         }
         .configurationDisplayName("Balance")
         .description("Your \(Brand.name) USDT balance at a glance.")
-        .supportedFamilies([.systemSmall, .systemMedium, .accessoryRectangular, .accessoryInline, .accessoryCircular])
+        .supportedFamilies([.systemSmall, .systemMedium, .systemLarge, .accessoryRectangular, .accessoryInline, .accessoryCircular])
     }
 }
 
@@ -31,7 +33,13 @@ struct BalanceEntry: TimelineEntry {
 
     static let preview = BalanceEntry(
         date: .now,
-        state: .ready(.init(address: "TUEZSdKsoDHQMeZwihtdoBiN46zxhGWYdH", usdtUnits: 1_284_500_000, trxSun: 42_000_000, updatedAt: .now)),
+        state: .ready(.init(address: "TUEZSdKsoDHQMeZwihtdoBiN46zxhGWYdH", usdtUnits: 1_284_500_000, trxSun: 42_000_000, updatedAt: .now,
+                            recent: [
+                                TokenTransfer(id: "p1", date: .now.addingTimeInterval(-1_800), from: "TMuA6YqfCeX8EhbfYEg5y7S4DqzSJireY9",
+                                              to: "TUEZSdKsoDHQMeZwihtdoBiN46zxhGWYdH", units: 500_000_000),
+                                TokenTransfer(id: "p2", date: .now.addingTimeInterval(-26_000), from: "TUEZSdKsoDHQMeZwihtdoBiN46zxhGWYdH",
+                                              to: "TDAeAFiB38L4mCAE8AhGRN7QUbG7DUv8tV", units: 120_000_000),
+                            ])),
         hidden: false
     )
 }
@@ -55,6 +63,9 @@ struct BalanceProvider: TimelineProvider {
                     snapshot.usdtUnits = usdt
                     snapshot.trxSun = trx
                     snapshot.updatedAt = .now
+                    if let recent = try? await client.usdtHistory(of: snapshot.address, limit: SharedWallet.recentCount) {
+                        snapshot.recent = recent
+                    }
                     SharedWallet.save(snapshot)
                 }
             }
@@ -95,6 +106,7 @@ struct BalanceWidgetView: View {
         case .ready(let snapshot):
             switch family {
             case .systemMedium: medium(snapshot)
+            case .systemLarge: large(snapshot)
             case .accessoryRectangular: rectangular(snapshot)
             case .accessoryInline: Text("\(Brand.name) \(amount(snapshot.usdtUnits)) USDT")
             case .accessoryCircular: circular(snapshot)
@@ -137,6 +149,46 @@ struct BalanceWidgetView: View {
                          warning: snapshot.trxSun < TRX.minimumForTransferSun)
             }
             .frame(width: 138)
+        }
+    }
+
+    /// The iPad home screen's size: the medium layout plus the latest transfers.
+    private func large(_ snapshot: SharedWallet.Snapshot) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            medium(snapshot).frame(height: 120)
+            Divider().overlay(.white.opacity(0.15))
+            Text("Recent").font(.caption.weight(.semibold)).foregroundStyle(.white.opacity(0.7))
+            let recent = snapshot.recent ?? []
+            if recent.isEmpty {
+                Text("No transfers yet").font(.caption).foregroundStyle(.white.opacity(0.6))
+            } else {
+                VStack(spacing: 10) {
+                    ForEach(recent) { transfer in
+                        recentRow(transfer, me: snapshot.address)
+                    }
+                }
+            }
+            Spacer(minLength: 0)
+        }
+    }
+
+    private func recentRow(_ transfer: TokenTransfer, me: String) -> some View {
+        let outgoing = transfer.from == me
+        return HStack(spacing: 10) {
+            Image(systemName: outgoing ? "arrow.up.right" : "arrow.down.left")
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(outgoing ? .white.opacity(0.8) : Theme.Palette.positive)
+                .frame(width: 26, height: 26)
+                .background(.white.opacity(0.08), in: .circle)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(outgoing ? "Sent" : "Received").font(.caption.weight(.semibold)).foregroundStyle(.white)
+                Text(transfer.date, style: .relative).font(.caption2).foregroundStyle(.white.opacity(0.6)).lineLimit(1)
+            }
+            Spacer(minLength: 6)
+            Text(entry.hidden ? "••••" : "\(outgoing ? "−" : "+")\(USDT.format(units: transfer.units))")
+                .font(.caption.weight(.semibold).monospacedDigit())
+                .foregroundStyle(outgoing ? .white : Theme.Palette.positive)
+                .privacySensitive()
         }
     }
 
@@ -238,6 +290,12 @@ struct BalanceWidgetView: View {
 }
 
 #Preview(as: .systemSmall) {
+    BalanceWidget()
+} timeline: {
+    BalanceEntry.preview
+}
+
+#Preview(as: .systemLarge) {
     BalanceWidget()
 } timeline: {
     BalanceEntry.preview

@@ -15,7 +15,8 @@
 - [x] Every identifier renamed: targets, folders, bundle IDs, Keychain service, widget kind, support-id prefix, display name, Face ID and camera texts. The old React Native Keychain migration is deleted.
 - [x] Placeholder brand: a rust/amber wing icon and logos, accent `#C25A1F`. To be replaced by the redesign.
 - [x] Theme token layer: `Kestrel/Shared/Theme.swift` (palette, radius, spacing, amount typography). Views use the tokens.
-- [x] `Localizable.xcstrings` (English) with `SWIFT_EMIT_LOC_STRINGS`. Custom view titles take `LocalizedStringKey`.
+- [x] `Localizable.xcstrings` (English, Russian, Simplified Chinese) with `SWIFT_EMIT_LOC_STRINGS`. Custom view titles take
+  `LocalizedStringKey`; strings built in code use `tr()`. Language, theme and text size are chosen in Settings.
 - [x] Support: Chatwoot placeholders in `SupportConfig`. The support button and legal rows stay hidden until they're set.
 - [x] The DEBUG `-demo` launch argument loads sample data for screenshots.
 - [x] Build green, crypto vector tests pass.
@@ -31,6 +32,13 @@
 - [x] Coin screen: price chart 1D–1Y with scrubbing, your position, market stats (cap, volume, 24h range, ATH), recent USDT transfers or TRX fuel and fees paid.
 - [x] Home Currencies rows open the coin screens. `TokenKind` is now the coin registry: a new coin is a new case.
 
+## Done (2026-11-27): charts, alerts, live fees, Activity and Receive rework
+- [x] Coin screen: 5-year range (Kraken weekly candles), expandable full-screen chart with volume bars and high/low markers, a returns table (1D–5Y), more market stats.
+- [x] Price alerts, phase 1: on-device, local notifications, checked while the app is open and at iOS's discretion in the background (alerts can arrive late).
+- [x] Live network-fee estimate per recipient on Send (read-only simulation); the fixed "13–14 TRX" text is gone. About 7 TRX to an address that holds USDT, 13–14 to one that doesn't.
+- [x] Activity: app-styled day cards, inline search above the transfers, an iPad layout built on `AdaptiveColumns`.
+- [x] Receive: Copy and Share under the address; the "Live receiver" redesign (listening halo, request headline, receipt moment, show/hide details).
+
 ## Next
 1. **Support:** stand up the Simnetiq Chatwoot instance and fill in `SupportConfig.chatwootBaseURL` and `chatwootWebsiteToken`.
 2. **Support and privacy pages:** decide where they live (a simple static page on the app's own domain), then set `SupportConfig.terms` and `privacy`.
@@ -45,13 +53,18 @@
    - a watch-only address
    - more TRC-20 tokens (the Currencies tab is ready: add a `TokenKind` case and a balance source)
    - push notifications for incoming transfers (needs a server or a third-party service)
+   - price alerts, phase 2: reliable delivery by push (APNs key, Push capability, a Supabase table keyed by an anonymous install id, a scheduled function)
+   - landscape for the expanded chart (needs rotation enabled app-wide and every other screen locked to portrait)
 4. **Redesign** (prompt: `docs/roadmap/NEXT_SESSION_DESIGN.md`): a new information architecture (don't copy the current tab and home layout), then the final icon and brand assets. Most of it is token and component work now.
 5. **Security backlog:** see `docs/SECURITY.md` §7. Verify the txID before signing, persist the PIN throttle, and fix the privacy manifest reason code before submission.
 
 ## QA
 - Unit: the existing crypto vectors. Add send and fee edge cases, URI parsing and PIN lockout.
 - UI flows on simulator and device: create, restore, PIN, Face ID, send (testnet or a small mainnet amount), receive, widgets, erase.
-- Review pass: accessibility, Dynamic Type, dark mode, iPad layouts.
+- Review pass: accessibility, Dynamic Type, dark mode.
+- [x] iPad and unfolded-iPhone layouts: the system's adaptable tab bar (`SidebarTabShell`; `MainSplitView` on iOS 17), two-column Wallet, Activity,
+  Currencies, coin and Receive screens, form-sized sheets, rotating QR camera, large widget.
+- Verify the iPhone Duo's inner display by hand (the simulator can't be unfolded from simctl).
 - `xcrun simctl io booted screenshot` works with `-demo` for quick screenshots.
 
 ## App Store submission
@@ -60,4 +73,6 @@
 - Required URLs: support and privacy policy.
 - App Privacy labels: collects almost nothing. Confirm what the Chatwoot support chat collects.
 - Export compliance: `ITSAppUsesNonExemptEncryption: false` is set. Re-check it after any new crypto.
-- Screenshots: new ones, from the redesigned app.
+- Screenshots: `scripts/capture-screenshots.sh`, then `fastlane/screenshot-studio` (see its README).
+  iPhone 6.9" and iPad 13" are automated; iPhone Duo and the widget slide are captured by hand.
+- Listing: `fastlane/metadata/en-US/` (English at launch). Support and privacy URLs are still TODO.

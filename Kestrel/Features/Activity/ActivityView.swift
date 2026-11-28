@@ -1,8 +1,8 @@
 import SwiftUI
 
 /// The Activity tab, one scrolling screen: a chart hero for the chosen
-/// timeframe, insight tiles, the top counterparties, then every transfer by
-/// day, searchable and filterable.
+/// timeframe, insight tiles, the top counterparties, then a search field and
+/// every transfer by day. Wide screens put the transfers beside the summary.
 struct ActivityView: View {
     @Environment(AppModel.self) private var app
     @AppStorage(SharedWallet.hideBalanceKey, store: SharedWallet.defaults) private var hideBalance = false
@@ -12,88 +12,58 @@ struct ActivityView: View {
     @State private var detail: TokenTransfer?
     @State private var showFilters = false
 
+    @FocusState private var searchFocused: Bool
+    @Environment(\.isSplitShell) private var isSplitShell
+
+    /// The search bar, with the results right under it: where a counterparty
+    /// tap and a tap into the field both scroll to.
     private static let resultsID = "results"
+    /// Where a transfer row's text starts inside a card: the card's inset,
+    /// `TransferRow`'s 42pt icon and the 12pt gap after it. Dividers start here.
+    private static let rowTextInset = Theme.Spacing.l + 42 + Theme.Spacing.m
 
     var body: some View {
         let snapshot = makeSnapshot()
         NavigationStack {
             ScrollViewReader { proxy in
-                List {
-                    Section {
-                        ActivityHeader(timeframe: $timeframe, mode: $mode, series: snapshot.series,
-                                       buckets: snapshot.buckets, insights: snapshot.insights,
-                                       masked: hideBalance, coverage: snapshot.coverage) {
-                            Task { await app.activity.ensureCoverage(since: coverageTarget(start: snapshot.start)) }
-                        }
+                // One scroll for both columns: the large title, pull to refresh and
+                // a tap on the status bar all behave as on every other screen, and
+                // the day cards stay lazy inside it.
+                ScrollView {
+                    // Wide screens: the summary beside the search and the transfers.
+                    AdaptiveColumns(spacing: Theme.Spacing.l, leadingFraction: 0.45) {
+                        summary(snapshot, proxy: proxy)
+                    } trailing: {
+                        transfers(snapshot)
                     }
-                    .cardRow()
-
-                    if snapshot.hasHistory {
-                        Section { insightsGrid(snapshot) }
-                            .cardRow()
-
-                        if !snapshot.insights.topCounterparties.isEmpty {
-                            Section { counterpartiesCard(snapshot.insights.topCounterparties, proxy: proxy) }
-                                .cardRow()
-                        }
-
-                        Section {
-                            resultsHeader(snapshot)
-                                .id(Self.resultsID)
-                        }
-                        .cardRow()
-
-                        if snapshot.groups.isEmpty {
-                            Section { noResults }
-                                .listRowBackground(Color.clear)
-                        } else {
-                            ForEach(snapshot.groups) { group in
-                                Section(group.title) {
-                                    ForEach(group.items) { transfer in
-                                        Button { detail = transfer } label: {
-                                            TransferRow(transfer: transfer, myAddress: snapshot.me, hideAmount: hideBalance,
-                                                        feeSun: app.activity.fees[transfer.id])
-                                                .contentShape(.rect)
-                                        }
-                                        .buttonStyle(.plain)
-                                    }
-                                }
-                                .listRowBackground(Theme.Palette.surface)
-                            }
-                        }
-                    } else {
-                        Section {
-                            ContentUnavailableView("No activity yet", systemImage: "clock",
-                                                   description: Text("Transfers show up here"))
-                        }
-                        .listRowBackground(Color.clear)
-                    }
+                    .padding(.horizontal, Theme.Spacing.screen)
+                    .padding(.top, Theme.Spacing.s)
+                    .padding(.bottom, Theme.Spacing.xl)
+                    .readableWidth(isSplitShell ? Theme.Layout.wideContent : Theme.Layout.readable)
                 }
-                .listSectionSpacing(Theme.Spacing.l)
-                .scrollContentBackground(.hidden)
+                .scrollDismissesKeyboard(.immediately)
                 .background(Theme.Palette.background)
                 .navigationTitle("Activity")
-                .searchable(text: $query.text, placement: .navigationBarDrawer(displayMode: .always),
-                            prompt: Text("Address, amount or tx id"))
-                .toolbar {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button { showFilters = true } label: {
-                            Image(systemName: hasFilters ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
-                        }
-                        .accessibilityLabel(hasFilters ? "Filters, on" : "Filters")
-                    }
-                }
                 .refreshable {
                     await app.refresh()
                     await app.activity.ensureCoverage(since: coverageTarget(start: snapshot.start))
                 }
                 .animation(.snappy, value: query)
                 .animation(.snappy, value: timeframe)
+                .onChange(of: searchFocused) { _, focused in
+                    guard focused else { return }
+                    Task {
+                        // After the layout that makes room under the field (see `holdsViewport`).
+                        try? await Task.sleep(for: .milliseconds(80))
+                        withAnimation(.snappy) { proxy.scrollTo(Self.resultsID, anchor: .top) }
+                    }
+                }
             }
             .task(id: timeframe) { await loadCoverage() }
             .sheet(isPresented: $showFilters) {
                 ActivityFilterSheet(query: $query)
                     .presentationDetents([.medium, .large])
+                    .formSheetSizing()
             }
             .sheet(item: $detail) { transfer in
                 TransferDetailView(transfer: transfer, myAddress: app.address ?? "") { to in
@@ -104,6 +74,96 @@ struct ActivityView: View {
                     }
                 }
             }
+        }
+    }
+
+    /// The chart hero, insight tiles and top counterparties: above the
+    /// transfers on iPhone, the leading column on wide screens.
+    @ViewBuilder
+    private func summary(_ snapshot: Snapshot, proxy: ScrollViewProxy) -> some View {
+        ActivityHeader(timeframe: $timeframe, mode: $mode, series: snapshot.series,
+                       buckets: snapshot.buckets, insights: snapshot.insights,
+                       masked: hideBalance, coverage: snapshot.coverage) {
+            Task { await app.activity.ensureCoverage(since: coverageTarget(start: snapshot.start)) }
+        }
+        if snapshot.hasHistory {
+            insightsGrid(snapshot)
+            if !snapshot.insights.topCounterparties.isEmpty {
+                counterpartiesCard(snapshot.insights.topCounterparties, proxy: proxy)
+            }
+        }
+    }
+
+    /// Search, the results header and a card per day: under the summary on
+    /// iPhone, the trailing column on wide screens.
+    @ViewBuilder
+    private func transfers(_ snapshot: Snapshot) -> some View {
+        if snapshot.hasHistory {
+            ActivitySearchBar(text: $query.text, focused: $searchFocused, filtersOn: hasFilters) {
+                searchFocused = false
+                showFilters = true
+            }
+            .padding(.top, Theme.Spacing.s)
+            .id(Self.resultsID)
+
+            ZStack(alignment: .top) {
+                if holdsViewport {
+                    Color.clear
+                        .containerRelativeFrame(.vertical)
+                        .allowsHitTesting(false)
+                        .accessibilityHidden(true)
+                }
+                VStack(spacing: Theme.Spacing.l) {
+                    resultsHeader(snapshot)
+                    if snapshot.groups.isEmpty {
+                        noResults
+                            .padding(.top, Theme.Spacing.xl)
+                    } else {
+                        // Lazy: a long history builds only the days on screen.
+                        LazyVStack(spacing: Theme.Spacing.l) {
+                            ForEach(snapshot.groups) { group in
+                                dayCard(group, snapshot: snapshot)
+                            }
+                        }
+                    }
+                }
+            }
+        } else {
+            ContentUnavailableView("No activity yet", systemImage: "clock",
+                                   description: Text("Transfers show up here"))
+                .padding(.top, Theme.Spacing.xl)
+        }
+    }
+
+    /// While searching or filtering, the results keep at least a screenful of
+    /// height. Otherwise a short result list would shorten the page, and the
+    /// scroll view would drag the field back down, behind the keyboard.
+    private var holdsViewport: Bool { searchFocused || query.isActive }
+
+    /// One day of transfers: the date, then its rows in one card.
+    private func dayCard(_ group: DayGroup, snapshot: Snapshot) -> some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.s) {
+            Text(group.title)
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(Theme.Palette.textSecondary)
+                .padding(.horizontal, Theme.Spacing.l)
+                .accessibilityAddTraits(.isHeader)
+            VStack(spacing: 0) {
+                ForEach(Array(group.items.enumerated()), id: \.element.id) { index, transfer in
+                    if index > 0 { Divider().padding(.leading, Self.rowTextInset) }
+                    Button { detail = transfer } label: {
+                        TransferRow(transfer: transfer, myAddress: snapshot.me, hideAmount: hideBalance,
+                                    feeSun: app.activity.fees[transfer.id])
+                            .padding(.horizontal, Theme.Spacing.l)
+                            .padding(.vertical, Theme.Spacing.xs)
+                            .contentShape(.rect)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.vertical, Theme.Spacing.xs)
+            .frame(maxWidth: .infinity)
+            .surface(cornerRadius: Theme.Radius.tile)
         }
     }
 
@@ -196,8 +256,8 @@ struct ActivityView: View {
                 continue
             }
             let title: String
-            if calendar.isDateInToday(day) { title = String(localized: "Today") }
-            else if calendar.isDateInYesterday(day) { title = String(localized: "Yesterday") }
+            if calendar.isDateInToday(day) { title = tr("Today") }
+            else if calendar.isDateInYesterday(day) { title = tr("Yesterday") }
             else { title = day.formatted(date: .abbreviated, time: .omitted) }
             result.append(DayGroup(id: day, title: title, items: [transfer]))
         }
@@ -231,21 +291,21 @@ struct ActivityView: View {
                 StatTile(title: "In", symbol: "arrow.down.left", tint: Theme.Palette.positive,
                          value: hideBalance ? mask : "+\(USDT.format(units: insights.inflow))",
                          valueColor: Theme.Palette.positive,
-                         detail: String(localized: "\(snapshot.inCount) received"))
+                         detail: tr("\(snapshot.inCount) received"))
                 StatTile(title: "Out", symbol: "arrow.up.right", tint: Theme.Palette.outgoing,
                          value: hideBalance ? mask : "−\(USDT.format(units: insights.outflow))",
-                         detail: String(localized: "\(snapshot.outCount) sent"))
+                         detail: tr("\(snapshot.outCount) sent"))
                 StatTile(title: "Net", symbol: "plusminus", tint: Theme.Palette.accentText,
                          value: hideBalance ? mask : ActivityFormat.signed(insights.net),
                          valueColor: insights.net > 0 ? Theme.Palette.positive : Theme.Palette.textPrimary,
-                         detail: String(localized: "In minus out"))
+                         detail: tr("In minus out"))
                 StatTile(title: "Network fees", symbol: "flame", tint: Theme.Palette.ember,
                          value: hideBalance ? mask : "\(TRX.format(sun: insights.feesSun)) TRX",
                          detail: feeDetail(insights.feesSun))
                 StatTile(title: "Transfers", symbol: "arrow.left.arrow.right", tint: Theme.Palette.accentText,
                          value: "\(insights.count)",
                          detail: insights.count == 0 || hideBalance ? nil
-                             : String(localized: "Avg \(USDT.format(units: insights.averageUnits))"))
+                             : tr("Avg \(USDT.format(units: insights.averageUnits))"))
                 Button {
                     if let largest { detail = largest }
                 } label: {
@@ -254,7 +314,7 @@ struct ActivityView: View {
                              valueColor: largest.map { $0.from == snapshot.me ? Theme.Palette.textPrimary : Theme.Palette.positive } ?? Theme.Palette.textTertiary,
                              detail: largest.map { transfer in
                                  let day = transfer.date.formatted(.dateTime.day().month(.abbreviated))
-                                 return transfer.from == snapshot.me ? String(localized: "Sent · \(day)") : String(localized: "Received · \(day)")
+                                 return transfer.from == snapshot.me ? tr("Sent · \(day)") : tr("Received · \(day)")
                              },
                              showsChevron: largest != nil)
                 }
@@ -295,7 +355,9 @@ struct ActivityView: View {
             }
         }
         .padding(.bottom, Theme.Spacing.xs)
-        .surface(cornerRadius: Theme.Radius.card)
+        // A selected row's tint mustn't spill past the rounded corners.
+        .clipShape(.rect(cornerRadius: Theme.Radius.tile, style: .continuous))
+        .surface(cornerRadius: Theme.Radius.tile)
     }
 
     private func counterpartyRow(_ party: Counterparty, rank: Int, selected: Bool) -> some View {
@@ -387,6 +449,7 @@ struct ActivityView: View {
             } actions: {
                 Button("Clear filters") { withAnimation(.snappy) { clearFilters() } }
                     .buttonStyle(.bordered)
+                    .buttonBorderShape(.capsule)
             }
         } else if !text.isEmpty {
             ContentUnavailableView.search(text: text)
@@ -406,16 +469,16 @@ struct ActivityView: View {
         var chips: [FilterChip] = []
         switch query.direction {
         case .all: break
-        case .incoming: chips.append(FilterChip(id: "direction", label: String(localized: "Received only")) { query.direction = .all })
-        case .outgoing: chips.append(FilterChip(id: "direction", label: String(localized: "Sent only")) { query.direction = .all })
+        case .incoming: chips.append(FilterChip(id: "direction", label: tr("Received only")) { query.direction = .all })
+        case .outgoing: chips.append(FilterChip(id: "direction", label: tr("Sent only")) { query.direction = .all })
         }
         let low = query.minUnits.map { USDT.format(units: $0) }
         let high = query.maxUnits.map { USDT.format(units: $0) }
         if low != nil || high != nil {
             let label = switch (low, high) {
-            case let (low?, high?): String(localized: "\(low)–\(high) USDT")
-            case let (low?, nil): String(localized: "≥ \(low) USDT")
-            case let (nil, high?): String(localized: "≤ \(high) USDT")
+            case let (low?, high?): tr("\(low)–\(high) USDT")
+            case let (low?, nil): tr("≥ \(low) USDT")
+            case let (nil, high?): tr("≤ \(high) USDT")
             default: ""
             }
             chips.append(FilterChip(id: "amount", label: label) {
@@ -428,8 +491,8 @@ struct ActivityView: View {
         if from != nil || to != nil {
             let label = switch (from, to) {
             case let (from?, to?): "\(from) – \(to)"
-            case let (from?, nil): String(localized: "Since \(from)")
-            case let (nil, to?): String(localized: "Until \(to)")
+            case let (from?, nil): tr("Since \(from)")
+            case let (nil, to?): tr("Until \(to)")
             default: ""
             }
             chips.append(FilterChip(id: "dates", label: label) {
@@ -438,7 +501,7 @@ struct ActivityView: View {
             })
         }
         if let counterparty = query.counterparty {
-            chips.append(FilterChip(id: "counterparty", label: String(localized: "With \(counterparty.shortAddress)"), monospaced: true) {
+            chips.append(FilterChip(id: "counterparty", label: tr("With \(counterparty.shortAddress)"), monospaced: true) {
                 query.counterparty = nil
             })
         }
@@ -469,6 +532,7 @@ private struct ActivityHeader: View {
     let onLoadMore: () -> Void
 
     @State private var selection: Date?
+    @Environment(\.isSplitShell) private var isSplitShell
 
     private var selectedPoint: BalancePoint? {
         guard mode == .balance, !masked, let selection else { return nil }
@@ -486,7 +550,7 @@ private struct ActivityHeader: View {
             figure
             ActivityChart(mode: mode, timeframe: timeframe, series: series, buckets: buckets,
                           masked: masked, selection: $selection)
-                .frame(height: 190)
+                .frame(height: isSplitShell ? 280 : 190)
                 .id(mode)
                 .transition(.opacity)
             PillPicker(selection: $timeframe, options: Timeframe.allCases) { $0.title }
@@ -494,7 +558,7 @@ private struct ActivityHeader: View {
         }
         .padding(Theme.Spacing.l)
         .padding(.top, Theme.Spacing.xxs)
-        .surface(cornerRadius: Theme.Radius.card)
+        .surface(cornerRadius: Theme.Radius.tile)
         .sensoryFeedback(.selection, trigger: selectedPoint?.date ?? selectedBucket?.start)
         .animation(.smooth(duration: 0.35), value: mode)
         .animation(.smooth(duration: 0.35), value: timeframe)
@@ -727,7 +791,7 @@ private struct StatTile: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(Theme.Spacing.l)
-        .surface(cornerRadius: Theme.Radius.l)
+        .surface(cornerRadius: Theme.Radius.tile)
         .accessibilityElement(children: .combine)
     }
 }
@@ -763,12 +827,67 @@ private struct FilterChipView: View {
     }
 }
 
-private extension View {
-    /// A list row that draws its own card (or nothing): no inset, fill or hairline.
-    func cardRow() -> some View {
-        listRowInsets(EdgeInsets())
-            .listRowBackground(Color.clear)
-            .listRowSeparator(.hidden)
+/// The inline search above the transfers: a capsule field in the app's
+/// surface style, and the filter button beside it.
+private struct ActivitySearchBar: View {
+    @Binding var text: String
+    var focused: FocusState<Bool>.Binding
+    let filtersOn: Bool
+    let onFilters: () -> Void
+
+    var body: some View {
+        HStack(spacing: Theme.Spacing.xs) {
+            HStack(spacing: Theme.Spacing.s) {
+                Image(systemName: "magnifyingglass")
+                    .font(.body.weight(.medium))
+                    .foregroundStyle(Theme.Palette.textTertiary)
+                    .accessibilityHidden(true)
+                TextField("Address, amount or tx id", text: $text)
+                    .focused(focused)
+                    .submitLabel(.search)
+                    .autocorrectionDisabled()
+                    .textInputAutocapitalization(.never)
+                    .onSubmit { focused.wrappedValue = false }
+                if !text.isEmpty {
+                    Button { text = "" } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(Theme.Palette.textTertiary)
+                            .frame(minWidth: 28, minHeight: 44)
+                            .contentShape(.rect)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Clear search")
+                }
+            }
+            .padding(.leading, Theme.Spacing.l)
+            .padding(.trailing, Theme.Spacing.m)
+            .frame(minHeight: 44)
+            .surface(in: .capsule)
+            // The whole capsule focuses the field, not only the text's own line.
+            .contentShape(.capsule)
+            .onTapGesture { focused.wrappedValue = true }
+
+            Button {
+                Haptics.tap()
+                onFilters()
+            } label: {
+                Image(systemName: filtersOn ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
+                    .font(.title2)
+                    .foregroundStyle(Theme.Palette.accentText)
+                    .frame(width: 44, height: 44)
+                    .contentShape(.rect)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(filtersOn ? "Filters, on" : "Filters")
+        }
+        // ⌘F on a hardware keyboard. The button only carries the shortcut.
+        .background {
+            Button("Search transfers") { focused.wrappedValue = true }
+                .keyboardShortcut("f", modifiers: .command)
+                .opacity(0)
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
+        }
     }
 }
 

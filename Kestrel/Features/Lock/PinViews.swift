@@ -94,10 +94,11 @@ struct PinSetupView: View {
                 .padding(.bottom, 24)
         }
         .padding()
+        .fitOrScroll()
         .alert("Use \(Biometrics.label)?", isPresented: $offerBiometrics) {
             Button("Enable") {
                 Task {
-                    if await Biometrics.authenticate(reason: "Enable \(Biometrics.label) for \(Brand.name)") {
+                    if await Biometrics.authenticate(reason: tr("Enable \(Biometrics.label) for \(Brand.name)")) {
                         Biometrics.isEnabled = true
                     }
                     app.pinCreated()
@@ -178,19 +179,20 @@ struct LockView: View {
             .padding(.bottom, 24)
         }
         .padding()
+        .fitOrScroll()
         .task { if Biometrics.isEnabled { biometric() } }
     }
 
     private var isThrottled: Bool { (lockedUntil ?? .distantPast) > .now }
 
     private var subtitle: String {
-        if isThrottled { return "Too many attempts. Try again in 30 seconds." }
-        return wrong ? "Wrong PIN" : "Welcome back"
+        if isThrottled { return tr("Too many attempts. Try again in 30 seconds.") }
+        return wrong ? tr("Wrong PIN") : tr("Welcome back")
     }
 
     private func biometric() {
         Task {
-            if await Biometrics.authenticate(reason: "Unlock \(Brand.name)") { app.unlock() }
+            if await Biometrics.authenticate(reason: tr("Unlock \(Brand.name)")) { app.unlock() }
         }
     }
 
@@ -242,6 +244,7 @@ struct ConfirmWithPINSheet: View {
                 .padding(.bottom, 16)
         }
         .padding()
+        .fitOrScroll()
         .presentationDetents([.large])
     }
 
@@ -262,4 +265,19 @@ struct ConfirmWithPINSheet: View {
             }
         }
     }
+}
+
+/// Full-height layouts (PIN pad, lock) that scroll only when the window is too
+/// short for them, as in a small Stage Manager window or landscape on an iPad.
+private struct FitOrScroll: ViewModifier {
+    func body(content: Content) -> some View {
+        ViewThatFits(in: .vertical) {
+            content
+            ScrollView { content }.scrollBounceBehavior(.basedOnSize)
+        }
+    }
+}
+
+private extension View {
+    func fitOrScroll() -> some View { modifier(FitOrScroll()) }
 }

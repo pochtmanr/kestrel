@@ -1,0 +1,24 @@
+---
+// Static hosts serve one 404 page for every path, so this one speaks all three languages.
+import Base from '../layouts/Base.astro';
+import { t, href, site, locales } from '../lib.mjs';
+
+const pages = locales.map((l) => ({ ...l, s: t(l.code).lost }));
+---
+
+<Base locale="en" slug="404" title={`${pages[0].s.title} | ${site.appName}`} description={pages[0].s.body} noindex>
+  <section class="wrap lost">
+    <p class="lost-code">404</p>
+    <h1>{pages[0].s.title}</h1>
+    <ul class="lost-list">
+      {
+        pages.map((p) => (
+          <li lang={p.lang}>
+            <span>{p.s.body}</span>
+            <a href={href(p.code)}>{p.s.home}</a>
+          </li>
+        ))
+      }
+    </ul>
+  </section>
+</Base>

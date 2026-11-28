@@ -1,5 +1,6 @@
 ---
 import Base from '../../layouts/Base.astro';
+import Phone from '../../components/Phone.astro';
 import { t, href, site, locales, localeOf } from '../../lib.mjs';
 
 export function getStaticPaths() {
@@ -26,21 +27,21 @@ const s = t(locale);
       </div>
       <p class="hero-note">{s.hero.note}</p>
     </div>
-    <div class="phone hero-phone">
-      <img src="/shots/home.webp" width="660" height="1434" alt={s.hero.shotAlt} />
+    <div class="hero-phones">
+      <Phone shot="send" alt="" loading="eager" class="is-back is-left" />
+      <Phone shot="receive" alt="" loading="eager" class="is-back is-right" />
+      <Phone shot="home" alt={s.hero.shotAlt} loading="eager" class="is-front" />
     </div>
   </div>
 
   <section class="section wrap" id="features">
-    <h2 class="section-title">{s.features.title}</h2>
+    <h2 class="section-title" data-reveal>{s.features.title}</h2>
     <div class="features">
       {
-        s.features.items.map((f) => (
-          <div class="feature">
+        s.features.items.map((f, i) => (
+          <div class="feature" data-reveal style={`--i:${i}`}>
             <div class="feature-stage">
-              <div class="phone">
-                <img src={`/shots/${f.shot}.webp`} width="660" height="1434" alt={f.alt} loading="lazy" />
-              </div>
+              <Phone shot={f.shot} alt={f.alt} />
             </div>
             <h3>{f.title}</h3>
             <p>{f.body}</p>
@@ -51,10 +52,10 @@ const s = t(locale);
   </section>
 
   <section class="section wrap" id="fees">
-    <h2 class="section-title">{s.fees.title}</h2>
-    <p class="section-intro">{s.fees.intro}</p>
+    <h2 class="section-title" data-reveal>{s.fees.title}</h2>
+    <p class="section-intro" data-reveal style="--i:1">{s.fees.intro}</p>
     <div class="fees-grid">
-      <div class="slip">
+      <div class="slip" data-reveal>
         <p class="slip-title">{s.fees.slipTitle}</p>
         <dl>
           {
@@ -71,29 +72,30 @@ const s = t(locale);
         </dl>
       </div>
       <ul class="plain-list">
-        {s.fees.notes.map((n) => <li>{n}</li>)}
+        {s.fees.notes.map((n, i) => <li data-reveal style={`--i:${i + 1}`}>{n}</li>)}
       </ul>
     </div>
+    <a class="text-link" href={href(locale, 'fees')}>{s.fees.link}</a>
   </section>
 
   <section class="section wrap" id="custody">
-    <h2 class="section-title">{s.custody.title}</h2>
-    <p class="section-intro">{s.custody.intro}</p>
+    <h2 class="section-title" data-reveal>{s.custody.title}</h2>
+    <p class="section-intro" data-reveal style="--i:1">{s.custody.intro}</p>
     <div class="custody-grid">
-      <div class="ledger">
+      <div class="ledger" data-reveal>
         <h3>{s.custody.staysTitle}</h3>
         <ul class="plain-list">
           {s.custody.stays.map((i) => <li>{i}</li>)}
         </ul>
       </div>
-      <div class="ledger is-out">
+      <div class="ledger is-out" data-reveal style="--i:1">
         <h3>{s.custody.leavesTitle}</h3>
         <ul class="plain-list">
           {s.custody.leaves.map((i) => <li>{i}</li>)}
         </ul>
       </div>
-      <div class="phone">
-        <img src="/shots/security.webp" width="660" height="1434" alt={s.custody.shotAlt} loading="lazy" />
+      <div data-reveal style="--i:2">
+        <Phone shot="security" alt={s.custody.shotAlt} />
       </div>
     </div>
     <p class="custody-never"><strong>{s.custody.neverTitle}.</strong> {s.custody.never}</p>
@@ -102,11 +104,11 @@ const s = t(locale);
 
   <section class="section know">
     <div class="wrap">
-      <h2 class="section-title">{s.know.title}</h2>
+      <h2 class="section-title" data-reveal>{s.know.title}</h2>
       <dl class="know-list">
         {
-          s.know.items.map((k) => (
-            <div>
+          s.know.items.map((k, i) => (
+            <div data-reveal style={`--i:${i % 2}`}>
               <dt>{k.title}</dt>
               <dd>{k.body}</dd>
             </div>
@@ -118,8 +120,8 @@ const s = t(locale);
   </section>
 
   <section class="section wrap" id="faq">
-    <h2 class="section-title">{s.faq.title}</h2>
-    <div class="faq">
+    <h2 class="section-title" data-reveal>{s.faq.title}</h2>
+    <div class="faq" data-reveal>
       {
         s.faq.items.map((f) => (
           <details>
@@ -129,10 +131,11 @@ const s = t(locale);
         ))
       }
     </div>
+    <a class="text-link" href={href(locale, 'help')}>{s.faq.link}</a>
   </section>
 
   <section class="section closing">
-    <div class="wrap">
+    <div class="wrap" data-reveal>
       <h2 class="section-title">{s.closing.title}</h2>
       <p>{s.closing.body}</p>
       {

@@ -4,7 +4,20 @@ export default {
     description:
       '在 TRON 网络上持有、发送和接收 USDT。密钥只保存在你的 iPhone 或 iPad 上。无需账户，无需注册，我们不收取任何费用。',
   },
-  nav: { features: '功能', fees: '费用', custody: '你的密钥', faq: '常见问题', support: '支持' },
+  nav: {
+    features: '功能',
+    fees: '费用',
+    custody: '你的密钥',
+    help: '帮助',
+    about: '关于',
+    support: '支持',
+    main: '主导航',
+    menu: '菜单',
+    close: '关闭菜单',
+    language: '语言',
+    skip: '跳到正文',
+    soon: '即将上架',
+  },
   hero: {
     title: '你的 USDT，你的密钥。',
     body: '{{brand}} 是一款用于 TRON 网络 USDT 的钱包。助记词在你的 iPhone 上生成，并且只保存在那里。无需开设账户，也没有任何人替你保管资金。',
@@ -53,6 +66,7 @@ export default {
       '费用由网络决定，并且可能变动。确认之前，应用会显示当前的估算值。',
       '如果我们将来开始收费，会在生效之前在本网站和应用内提前公告。',
     ],
+    link: 'TRON 网络费用是如何计算的',
   },
   custody: {
     title: '哪些留在你的 iPhone 上，哪些会离开',
@@ -70,6 +84,7 @@ export default {
       '你的公开钱包地址：发送给 TronGrid，用于读取余额和交易记录',
       '你已签名的转账：发送到 TRON 网络',
       'USDT 和 TRX 的价格请求：发送给 CoinGecko，不含任何钱包信息',
+      '5 年价格走势图的请求：发送给 Kraken，仅包含币种名称',
     ],
     neverTitle: '应用里没有的东西',
     never: '没有账户、电子邮箱、手机号码或身份验证。没有分析、广告或跟踪代码。',
@@ -98,6 +113,12 @@ export default {
       { q: '支持哪些币种和网络？', a: 'TRON 网络上的 USDT（TRC-20）和 TRX。仅此而已。' },
       { q: '客服会索要我的助记词吗？', a: '绝对不会。无论对方怎么说，索要助记词的人都是想盗取你的资金。我们唯一的支持邮箱是 {{supportEmail}}。' },
     ],
+    link: '更多问题与解答',
+  },
+  lost: {
+    title: '页面不存在',
+    body: '地址可能输入有误，或者页面已被移动。',
+    home: '返回首页',
   },
   closing: {
     title: '十二个单词，一个 PIN 码，完成。',
@@ -114,6 +135,9 @@ export default {
       legal: '法律声明',
       support: '支持',
       security: '安全',
+      about: '关于',
+      fees: '网络费用',
+      help: '帮助',
     },
     company:
       '{{appName}} 由 {{company}} 发布。该公司在英格兰和威尔士注册（公司编号 {{companyNumber}}）。注册办公地址：{{registeredOffice}}。',

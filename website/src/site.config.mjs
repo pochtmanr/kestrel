@@ -29,18 +29,21 @@ export const site = {
   // Legal pages: bump when the text changes in substance.
   lastUpdated: { en: '27 November 2026', ru: '27 ноября 2026 г.', zh: '2026年11月27日' },
 
-  // Facts quoted in copy. Keep in step with the app (SendRules.swift, ReviewTransferSheet.swift).
+  // Facts quoted in copy. Keep in step with the app (FeeEstimate.typicalRange in FeeEstimate.swift).
   networkFee: '7–14 TRX',
   minAge: '18',
 };
 
 export const locales = [
-  { code: 'en', path: '', lang: 'en', label: 'English' },
-  { code: 'ru', path: 'ru', lang: 'ru', label: 'Русский' },
-  { code: 'zh', path: 'zh', lang: 'zh-Hans', label: '简体中文' },
+  { code: 'en', path: '', lang: 'en', label: 'English', short: 'EN' },
+  { code: 'ru', path: 'ru', lang: 'ru', label: 'Русский', short: 'RU' },
+  { code: 'zh', path: 'zh', lang: 'zh-Hans', label: '简体中文', short: '中文' },
 ];
 
 export const legalSlugs = ['privacy', 'terms', 'risks', 'restricted', 'legal', 'support', 'security'];
+// Guides: same Markdown pipeline as the legal pages, but not legal documents.
+export const guideSlugs = ['about', 'fees', 'help'];
+export const pageSlugs = [...legalSlugs, ...guideSlugs];
 
 export function placeholders() {
   const missing = Object.entries(site)

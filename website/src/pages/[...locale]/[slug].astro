@@ -1,27 +1,35 @@
 ---
 import Base from '../../layouts/Base.astro';
-import { t, site, locales, legalSlugs, legalPage, localeOf } from '../../lib.mjs';
+import { t, site, locales, pageSlugs, guideSlugs, legalPage, localeOf } from '../../lib.mjs';
 
 export function getStaticPaths() {
-  return locales.flatMap((l) => legalSlugs.map((slug) => ({ params: { locale: l.path || undefined, slug } })));
+  return locales.flatMap((l) => pageSlugs.map((slug) => ({ params: { locale: l.path || undefined, slug } })));
 }
 
 const locale = localeOf(Astro.params.locale).code;
 const { slug } = Astro.params;
 const s = t(locale);
 const page = legalPage(locale, slug);
+const isGuide = guideSlugs.includes(slug);
 // Wide tables scroll inside their own box on phones instead of stretching the page.
-const html = page.html.replaceAll('<table>', '<div class="table-scroll"><table>').replaceAll('</table>', '</table></div>');
+let html = page.html.replaceAll('<table>', '<div class="table-scroll"><table>').replaceAll('</table>', '</table></div>');
+// On the help page each question (an h3 and its answer) folds, like the questions on the landing page.
+if (slug === 'help') {
+  html = html.replace(/<h3>([\s\S]*?)<\/h3>([\s\S]*?)(?=<h3>|<h2>|$)/g, '<details><summary>$1</summary>$2</details>');
+}
 ---
 
 <Base locale={locale} slug={slug} title={`${page.title} | ${site.appName}`} description={page.description}>
   <article class="wrap doc">
     <header class="doc-head">
       <h1>{page.title}</h1>
-      <p class="doc-meta">
-        {s.doc.updated}
-        {s.doc.prevails && <><br />{s.doc.prevails}</>}
-      </p>
+      {
+        // Guides are not legal documents: no "English version prevails" line.
+        <p class="doc-meta">
+          {s.doc.updated}
+          {!isGuide && s.doc.prevails && <><br />{s.doc.prevails}</>}
+        </p>
+      }
     </header>
     <div class="prose" set:html={html} />
   </article>

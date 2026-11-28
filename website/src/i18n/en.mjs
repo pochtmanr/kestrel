@@ -4,7 +4,20 @@ export default {
     description:
       'Hold, send and receive USDT on TRON with a wallet that keeps your keys on your iPhone or iPad. No account, no sign-up, and no fee from us.',
   },
-  nav: { features: 'What it does', fees: 'Fees', custody: 'Your keys', faq: 'Questions', support: 'Support' },
+  nav: {
+    features: 'What it does',
+    fees: 'Fees',
+    custody: 'Your keys',
+    help: 'Help',
+    about: 'About',
+    support: 'Support',
+    main: 'Main',
+    menu: 'Menu',
+    close: 'Close menu',
+    language: 'Language',
+    skip: 'Skip to content',
+    soon: 'Coming soon',
+  },
   hero: {
     title: 'Your USDT. Your keys.',
     body: '{{brand}} is a wallet for USDT on the TRON network. Your recovery phrase is created on your iPhone and stays there. There is no account to open and nobody holding your funds for you.',
@@ -53,6 +66,7 @@ export default {
       'The network sets its fee and can change it. The app shows the current estimate before you confirm.',
       'If we ever introduce a fee, we will announce it here and in the app before it applies.',
     ],
+    link: 'How TRON network fees work',
   },
   custody: {
     title: 'What stays on your iPhone, and what leaves it',
@@ -70,6 +84,7 @@ export default {
       'Your public wallet address, sent to TronGrid to read balances and history',
       'Transfers you have signed, sent to the TRON network',
       'Requests for USDT and TRX prices, sent to CoinGecko with no wallet details',
+      'Requests for the 5-year price chart, sent to Kraken with coin names only',
     ],
     neverTitle: 'What the app does not have',
     never: 'No account, no email, no phone number, no identity checks. No analytics, advertising or tracking code.',
@@ -98,6 +113,12 @@ export default {
       { q: 'Which coins and networks are supported?', a: 'USDT (TRC-20) and TRX on the TRON network. Nothing else.' },
       { q: 'Will support ever ask for my recovery phrase?', a: 'Never. Anyone who asks for it is trying to steal your funds, whatever they say. Our only support address is {{supportEmail}}.' },
     ],
+    link: 'More questions and answers',
+  },
+  lost: {
+    title: 'This page does not exist',
+    body: 'The address may be mistyped, or the page has moved.',
+    home: 'Go to the home page',
   },
   closing: {
     title: 'Twelve words. One PIN. Done.',
@@ -114,6 +135,9 @@ export default {
       legal: 'Legal notice',
       support: 'Support',
       security: 'Security',
+      about: 'About',
+      fees: 'Network fees',
+      help: 'Help',
     },
     company:
       '{{appName}} is published by {{company}}, a company registered in {{registeredIn}} (company number {{companyNumber}}). Registered office: {{registeredOffice}}.',

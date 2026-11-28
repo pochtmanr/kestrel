@@ -8,60 +8,171 @@ interface Props {
   title: string;
   description: string;
   nightHeader?: boolean;
+  noindex?: boolean;
 }
-const { locale, slug = '', title, description, nightHeader = false } = Astro.props;
+const { locale, slug = '', title, description, nightHeader = false, noindex = false } = Astro.props;
 const s = t(locale);
-const lang = locales.find((l) => l.code === locale).lang;
+const current = locales.find((l) => l.code === locale);
 const canonical = new URL(href(locale, slug), site.url).href;
 const home = href(locale);
+// The 404 page has no translations of its own: its language links go to each home page.
+const langSlug = noindex ? '' : slug;
+// Section links scroll the landing page; page links open a page of their own.
 const nav = [
-  ['features', s.nav.features],
-  ['fees', s.nav.fees],
-  ['custody', s.nav.custody],
-  ['faq', s.nav.faq],
+  { label: s.nav.features, to: `${home}#features`, section: 'features' },
+  { label: s.nav.fees, to: `${home}#fees`, section: 'fees' },
+  { label: s.nav.custody, to: `${home}#custody`, section: 'custody' },
+  { label: s.nav.help, to: href(locale, 'help'), page: 'help' },
+  { label: s.nav.about, to: href(locale, 'about'), page: 'about' },
 ];
-const productLinks = ['support', 'security'];
+const productLinks = ['about', 'fees', 'help', 'support', 'security'];
 const legalLinks = ['privacy', 'terms', 'risks', 'restricted', 'legal'];
+const ogLocale = { en: 'en_GB', ru: 'ru_RU', zh: 'zh_CN' };
+const ogImage = new URL('/og.png', site.url).href;
 ---
 
 <!doctype html>
-<html lang={lang}>
+<html lang={current.lang}>
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>{title}</title>
     <meta name="description" content={description} />
-    <link rel="canonical" href={canonical} />
-    {locales.map((l) => <link rel="alternate" hreflang={l.lang} href={new URL(href(l.code, slug), site.url).href} />)}
-    <link rel="alternate" hreflang="x-default" href={new URL(href('en', slug), site.url).href} />
+    {noindex && <meta name="robots" content="noindex" />}
+    {!noindex && <link rel="canonical" href={canonical} />}
+    {!noindex && locales.map((l) => <link rel="alternate" hreflang={l.lang} href={new URL(href(l.code, slug), site.url).href} />)}
+    {!noindex && <link rel="alternate" hreflang="x-default" href={new URL(href('en', slug), site.url).href} />}
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
     <meta name="theme-color" content="#0B1424" />
+    <meta property="og:site_name" content={site.appName} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
-    <meta property="og:url" content={canonical} />
+    {!noindex && <meta property="og:url" content={canonical} />}
     <meta property="og:type" content="website" />
+    <meta property="og:locale" content={ogLocale[locale]} />
+    {locales.filter((l) => l.code !== locale).map((l) => <meta property="og:locale:alternate" content={ogLocale[l.code]} />)}
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content={site.appName} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content={ogImage} />
+    <!-- Motion and menus are switched on only when scripts run; without them the page is static and complete. -->
+    <script is:inline>
+      document.documentElement.classList.add('js');
+    </script>
   </head>
   <body>
-    <a class="skip" href="#main">{s.nav.features}</a>
-    <div class={nightHeader ? 'hero on-night' : ''}>
-      <header class="wrap site-header">
+    <a class="skip" href="#main">{s.nav.skip}</a>
+
+    <header class="nav" data-night={nightHeader ? '' : undefined}>
+      <div class="nav-pill">
         <a class="brand" href={home}><span class="brand-mark" aria-hidden="true"></span>{site.brand}</a>
-        <nav class="site-nav" aria-label={s.footer.product}>
-          {nav.map(([id, label]) => <a href={`${home}#${id}`}>{label}</a>)}
-          <a href={href(locale, 'support')}>{s.nav.support}</a>
-        </nav>
-        <nav class="langs" aria-label={s.footer.language}>
+        <nav class="nav-links" aria-label={s.nav.main}>
+          <span class="nav-ind" aria-hidden="true"></span>
           {
-            locales.map((l) => (
-              <a href={href(l.code, slug)} lang={l.lang} hreflang={l.lang} aria-current={l.code === locale ? 'true' : undefined}>
-                {l.label}
+            nav.map((n) => (
+              <a href={n.to} data-section={n.section} aria-current={n.page && n.page === slug ? 'page' : undefined}>
+                {n.label}
               </a>
             ))
           }
         </nav>
-      </header>
-      <slot name="hero" />
+        <div class="nav-end">
+          <div class="lang">
+            <button class="lang-btn" type="button" aria-expanded="false" aria-controls="lang-menu" aria-label={`${s.nav.language}: ${current.short}, ${current.label}`}>
+              <svg class="lang-globe" viewBox="0 0 20 20" width="18" height="18" aria-hidden="true">
+                <g fill="none" stroke="currentColor" stroke-width="1.5">
+                  <circle cx="10" cy="10" r="7.25"></circle>
+                  <path d="M2.75 10h14.5M10 2.75c2.2 2 3.3 4.4 3.3 7.25s-1.1 5.25-3.3 7.25c-2.2-2-3.3-4.4-3.3-7.25s1.1-5.25 3.3-7.25z"></path>
+                </g>
+              </svg>
+              <span>{current.short}</span>
+              <svg class="lang-chevron" viewBox="0 0 12 12" width="12" height="12" aria-hidden="true">
+                <path d="M2.5 4.5 6 8l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path>
+              </svg>
+            </button>
+            <div class="lang-menu" id="lang-menu">
+              {
+                locales.map((l) => (
+                  <a href={href(l.code, langSlug)} lang={l.lang} hreflang={l.lang} aria-current={l.code === locale ? 'true' : undefined}>
+                    <span class="lang-code">{l.short}</span>
+                    <span class="lang-name">{l.label}</span>
+                    <svg class="lang-check" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+                      <path d="m3.5 8.5 3 3 6-7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                  </a>
+                ))
+              }
+            </div>
+          </div>
+          {
+            site.downloadUrl ? (
+              <a class="nav-cta" href={site.downloadUrl}>{s.hero.cta}</a>
+            ) : (
+              <span class="nav-cta is-soon">{s.nav.soon}</span>
+            )
+          }
+          <button class="nav-burger" type="button" aria-expanded="false" aria-controls="mnav" aria-label={s.nav.menu}>
+            <span></span><span></span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Phone menu: the pill itself grows downward. It is inert until opened. -->
+    <div class="mnav" id="mnav" role="dialog" aria-modal="true" aria-label={s.nav.menu} inert>
+      <div class="mnav-backdrop"></div>
+      <div class="mnav-panel">
+        <div class="mnav-bar">
+          <a class="brand" href={home}><span class="brand-mark" aria-hidden="true"></span>{site.brand}</a>
+          <button class="mnav-close" type="button" aria-label={s.nav.close}>
+            <svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true">
+              <path d="m5 5 10 10M15 5 5 15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+            </svg>
+          </button>
+        </div>
+        <nav class="mnav-links" aria-label={s.nav.main}>
+          {
+            [...nav, { label: s.nav.support, to: href(locale, 'support'), page: 'support' }].map((n, i) => (
+              <a href={n.to} aria-current={n.page && n.page === slug ? 'page' : undefined} style={`--i:${i}`}>
+                {n.label}
+              </a>
+            ))
+          }
+        </nav>
+        <div class="mnav-foot">
+          <div class="mnav-langs" role="group" aria-label={s.nav.language}>
+            {
+              locales.map((l) => (
+                <a href={href(l.code, langSlug)} lang={l.lang} hreflang={l.lang} aria-current={l.code === locale ? 'true' : undefined}>
+                  {l.label}
+                </a>
+              ))
+            }
+          </div>
+          {
+            site.downloadUrl ? (
+              <a class="button" href={site.downloadUrl}>{s.hero.cta}</a>
+            ) : (
+              <span class="button is-soon">{s.hero.soon}</span>
+            )
+          }
+        </div>
+      </div>
     </div>
+
+    {
+      nightHeader ? (
+        <div class="hero">
+          <slot name="hero" />
+        </div>
+      ) : (
+        <div class="nav-space" />
+      )
+    }
 
     <main id="main">
       <slot />
@@ -82,6 +193,20 @@ const legalLinks = ['privacy', 'terms', 'risks', 'restricted', 'legal'];
             {legalLinks.map((p) => <li><a href={href(locale, p)}>{s.footer.pages[p]}</a></li>)}
           </ul>
         </div>
+        <div class="footer-col">
+          <h2>{s.footer.language}</h2>
+          <ul>
+            {
+              locales.map((l) => (
+                <li>
+                  <a href={href(l.code, langSlug)} lang={l.lang} hreflang={l.lang} aria-current={l.code === locale ? 'true' : undefined}>
+                    {l.label}
+                  </a>
+                </li>
+              ))
+            }
+          </ul>
+        </div>
       </div>
       <div class="footer-fine">
         <p>{s.footer.company}</p>
@@ -90,5 +215,142 @@ const legalLinks = ['privacy', 'terms', 'risks', 'restricted', 'legal'];
         <p>© 2026 {site.company}</p>
       </div>
     </footer>
+
+    <script is:inline>
+      (() => {
+        const header = document.querySelector('.nav');
+        if (!header) return;
+        const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const langBtn = header.querySelector('.lang-btn');
+        const lang = header.querySelector('.lang');
+        const burger = header.querySelector('.nav-burger');
+        const menu = document.getElementById('mnav');
+        const links = header.querySelector('.nav-links');
+        const ind = header.querySelector('.nav-ind');
+
+        // Language popup
+        const setLang = (open) => {
+          lang.toggleAttribute('data-open', open);
+          langBtn.setAttribute('aria-expanded', String(open));
+        };
+        langBtn.addEventListener('click', () => setLang(!lang.hasAttribute('data-open')));
+        document.addEventListener('pointerdown', (e) => {
+          if (!lang.contains(e.target)) setLang(false);
+        });
+        lang.addEventListener('focusout', (e) => {
+          if (e.relatedTarget && !lang.contains(e.relatedTarget)) setLang(false);
+        });
+
+        // Phone menu
+        // While the menu is open the rest of the page is inert, so focus cannot wander behind it.
+        const behind = [header, document.querySelector('main'), document.querySelector('.hero'), document.querySelector('.site-footer')].filter(Boolean);
+        const setMenu = (open) => {
+          menu.toggleAttribute('data-open', open);
+          menu.inert = !open;
+          behind.forEach((el) => (el.inert = open));
+          burger.setAttribute('aria-expanded', String(open));
+          document.documentElement.classList.toggle('menu-open', open);
+          const next = open ? menu.querySelector('.mnav-close') : burger.offsetParent ? burger : header.querySelector('.brand');
+          next.focus({ preventScroll: true });
+        };
+        burger.addEventListener('click', () => setMenu(true));
+        menu.addEventListener('click', (e) => {
+          if (e.target.closest('.mnav-close, .mnav-backdrop, a')) setMenu(false);
+        });
+        matchMedia('(max-width: 860px)').addEventListener('change', (e) => {
+          if (!e.matches && menu.hasAttribute('data-open')) setMenu(false);
+        });
+        document.addEventListener('keydown', (e) => {
+          if (e.key !== 'Escape') return;
+          if (menu.hasAttribute('data-open')) setMenu(false);
+          else if (lang.hasAttribute('data-open')) {
+            setLang(false);
+            langBtn.focus();
+          }
+        });
+
+        // Pill: solid once the page has moved, tucked away on the way down, back on the way up.
+        const hero = document.querySelector('.hero');
+        const phones = document.querySelector('.hero-phones');
+        let last = scrollY;
+        let queued = false;
+        const busy = () => lang.hasAttribute('data-open') || menu.hasAttribute('data-open') || header.contains(document.activeElement);
+        const onScroll = () => {
+          queued = false;
+          const y = scrollY;
+          header.toggleAttribute('data-scrolled', y > 8);
+          if (Math.abs(y - last) > 6) {
+            header.toggleAttribute('data-hidden', !calm && y > last && y > 420 && !busy());
+            last = y;
+          }
+          if (phones && !calm && hero && y < hero.offsetHeight) phones.style.setProperty('--drift', (y / hero.offsetHeight).toFixed(3));
+        };
+        addEventListener(
+          'scroll',
+          () => {
+            if (!queued) {
+              queued = true;
+              requestAnimationFrame(onScroll);
+            }
+          },
+          { passive: true },
+        );
+        header.addEventListener('focusin', () => header.removeAttribute('data-hidden'));
+        onScroll();
+
+        // The marker slides to the link under the pointer, and rests on the section in view.
+        let active = links.querySelector('[aria-current]');
+        const moveTo = (a) => {
+          if (!a) return ind.removeAttribute('data-on');
+          ind.style.width = a.offsetWidth + 'px';
+          ind.style.transform = `translateX(${a.offsetLeft}px)`;
+          ind.setAttribute('data-on', '');
+        };
+        links.querySelectorAll('a').forEach((a) => {
+          a.addEventListener('pointerenter', () => moveTo(a));
+          a.addEventListener('focus', () => moveTo(a));
+        });
+        links.addEventListener('pointerleave', () => moveTo(active));
+        links.addEventListener('focusout', () => moveTo(active));
+        addEventListener('resize', () => moveTo(active));
+
+        const sections = [...links.querySelectorAll('[data-section]')]
+          .map((a) => [document.getElementById(a.dataset.section), a])
+          .filter(([el]) => el);
+        if (sections.length && 'IntersectionObserver' in window) {
+          const seen = new Map();
+          const spy = new IntersectionObserver(
+            (entries) => {
+              entries.forEach((e) => seen.set(e.target, e.isIntersecting));
+              const hit = sections.find(([el]) => seen.get(el));
+              links.querySelectorAll('[data-section]').forEach((a) => a.removeAttribute('aria-current'));
+              active = hit ? hit[1] : null;
+              if (active) active.setAttribute('aria-current', 'true');
+              if (!links.matches(':hover')) moveTo(active);
+            },
+            { rootMargin: '-40% 0px -55% 0px' },
+          );
+          sections.forEach(([el]) => spy.observe(el));
+        }
+        moveTo(active);
+
+        // Reveal on scroll, once.
+        const hidden = document.querySelectorAll('[data-reveal]');
+        if (calm || !('IntersectionObserver' in window)) {
+          hidden.forEach((el) => el.classList.add('is-in'));
+        } else {
+          const io = new IntersectionObserver(
+            (entries) =>
+              entries.forEach((e) => {
+                if (!e.isIntersecting) return;
+                e.target.classList.add('is-in');
+                io.unobserve(e.target);
+              }),
+            { rootMargin: '0px 0px -80px 0px' },
+          );
+          hidden.forEach((el) => io.observe(el));
+        }
+      })();
+    </script>
   </body>
 </html>

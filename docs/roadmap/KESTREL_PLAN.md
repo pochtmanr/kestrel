@@ -17,7 +17,7 @@
 - [x] Theme token layer: `Kestrel/Shared/Theme.swift` (palette, radius, spacing, amount typography). Views use the tokens.
 - [x] `Localizable.xcstrings` (English, Russian, Simplified Chinese) with `SWIFT_EMIT_LOC_STRINGS`. Custom view titles take
   `LocalizedStringKey`; strings built in code use `tr()`. Language, theme and text size are chosen in Settings.
-- [x] Support: Chatwoot placeholders in `SupportConfig`. The support button and legal rows stay hidden until they're set.
+- [x] Support: Chatwoot placeholders in `SupportConfig`. The support chat button stays hidden until they're set. The legal rows link to kastrel.xyz.
 - [x] The DEBUG `-demo` launch argument loads sample data for screenshots.
 - [x] Build green, crypto vector tests pass.
 - [x] Backend client (`Kestrel/Services/Backend.swift`): the same Supabase project and anon key as the source app, for wallet features that need a server. No card endpoints.
@@ -41,7 +41,7 @@
 
 ## Next
 1. **Support:** stand up the Simnetiq Chatwoot instance and fill in `SupportConfig.chatwootBaseURL` and `chatwootWebsiteToken`.
-2. **Support and privacy pages:** decide where they live (a simple static page on the app's own domain), then set `SupportConfig.terms` and `privacy`.
+2. **Support and privacy pages:** done. They live in `website/` (kastrel.xyz), and `SupportConfig.terms`, `privacy` and `support` point at them.
 3. **Launch features.** Pick from:
    - an address book with labels
    - price and fiat value display
@@ -75,4 +75,4 @@
 - Export compliance: `ITSAppUsesNonExemptEncryption: false` is set. Re-check it after any new crypto.
 - Screenshots: `scripts/capture-screenshots.sh`, then `fastlane/screenshot-studio` (see its README).
   iPhone 6.9" and iPad 13" are automated; iPhone Duo and the widget slide are captured by hand.
-- Listing: `fastlane/metadata/en-US/` (English at launch). Support and privacy URLs are still TODO.
+- Listing: `fastlane/metadata/en-US/` (English at launch). Support and privacy URLs point at kastrel.xyz.

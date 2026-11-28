@@ -1,5 +1,5 @@
 import { marked } from 'marked';
-import { site, locales, legalSlugs } from './site.config.mjs';
+import { site, locales, legalSlugs, guideSlugs, pageSlugs } from './site.config.mjs';
 import en from './i18n/en.mjs';
 import ru from './i18n/ru.mjs';
 import zh from './i18n/zh.mjs';
@@ -51,4 +51,4 @@ export function legalPage(locale, slug) {
   return { ...meta, html: marked.parse(fill(match[2], locale), { gfm: true }) };
 }
 
-export { site, locales, legalSlugs };
+export { site, locales, legalSlugs, guideSlugs, pageSlugs };
